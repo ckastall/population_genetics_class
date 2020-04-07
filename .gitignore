@@ -19,6 +19,7 @@ Session.vim
 # log and pdf output files
 *.log
 *.pdf
+*.html
 *.csv
 
 # archived files
