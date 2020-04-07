@@ -1,11 +1,11 @@
 ---
 title: |
     | DNA analysis in population genetics
-    | Practical 3, Summary statistics and Linkage Disequilibrium
+    | Summary statistics and Linkage Disequilibrium
 author: |
     | Chedly Kastally <chedly.kastally@oulu.fi>
     | Tanja Pyhäjärvi <tanja.pyhajarvi@oulu.fi>
-bibliography: 3_real_data_statistics.bib
+bibliography: genetic_summary_statistics_basic.bib
 output:
   pdf_document:
         beamer_presentation:
@@ -61,29 +61,6 @@ knitr::opts_chunk$set(size="tiny", cache = T)
     - model the $r^2$ decay
     - linkage mapping using $r^2$
 
-<!-- - ABC? probably not -->
-
-<!-- # Reminder: CK TODO: -->
-<!--  -->
-<!-- - Mention some tutorials on how to learn more about R and how to use it -->
-<!--  -->
-<!-- - Quality checking etc, franchement je pense que ce n'est pas intéressant. On  -->
-<!--   ne peut pas en 3h leur parler de toutes les statistiques, et en même  -->
-<!--   expliquer comment faire du QC, en plus ils n'ont aucune notion de ce qu'on a  -->
-<!--   fait pour générer un fichier vcf. -->
-<!--  -->
-<!-- - Some reminders on how to use Rstudio: -->
-<!--     - the different windows -->
-<!--     - write your code in a script/text file, run the code by "sending" the line to the console -->
-<!--     - save your script regularly -->
-<!--     - learn about the environment window -->
-<!--     - learn about the help and plotting windows -->
-<!--     - learn how to get help from inside R. -->
-<!--  -->
-<!-- # Reading input data: a vcf file -->
-<!--  -->
-<!-- - Reminder of the vcf standard -->
-
 # Read a library file
 
 Today you will use some custom made function, you have to load the file 
@@ -94,12 +71,13 @@ Make sure it is loaded properly and you have no error message when running the
 function *source*.
 
 ```{r}
-library_file <- "./3_real_data_statistics_lib.R"
+library_file <- "./additional_files/genetic_summary_statistics_basic_lib.R"
 source(library_file)
 ```
 
 # Packages: vcfR, ape, pegas, adegenet
 
+\small
 Additionally, we will be using various packages, notably:
 
 - _vcfR_, a package to manipulate and visualize vcf files
@@ -108,7 +86,7 @@ Additionally, we will be using various packages, notably:
 - _adegenet_, package to perform analyses on large genetic data, spatial 
   analyses and multivariate analyses.
 
-```{r, echo = F}
+```{r, echo = F, eval = T, message = F}
 library("vcfR")
 ```
 
@@ -136,11 +114,17 @@ The first step is to read the vcf file using the function _read.vcfR_.
 help("read.vcfR", package = "vcfR")
 
 # Let us define the input file in a variable "input_vcf"
-input_vcf_model_1 <- "./Model-1_10000_indep_markers.vcf"
+input_vcf_model_1 <- "./additional_files/Model-1_10000_indep_markers.vcf"
 
 # We now read the input file and assign the result to the variable 
 # "vcf_dat_model_1"
 vcf_dat_model_1 <- read.vcfR(input_vcf_model_1)
+
+```
+
+```{r, echo = F, eval = T, message = F}
+
+vcf_dat_model_1 <- read.vcfR(input_vcf_model_1, verbose = F)
 
 ```
 
@@ -214,7 +198,7 @@ Now let's plot our result. This is what we can call the unfolded site frequency
 spectrum, or derived site frequency spectrum, because we know the allelic state 
 of each locus, i\.e\., whether they are _derived_ or _ancestral_.
 
-```{r, fig.width = 12, fig.height = 5}
+```{r, fig.width = 12, fig.height = 4}
 
 # Let's plot the histogram of allele frequencies
 hist(derived_allele_frequencies, breaks = nsamples, right = T,
@@ -397,6 +381,7 @@ points(x = maf_theo_ex1[, 1], y = maf_theo_ex1[, 3], type = "l", col = "red")
 
 # Reading a fasta file
 
+\small
 We will now focus on reading data from fasta files, using package *ape* and 
 analyzing its content using packages *pegas* and *adegenet*.
 
@@ -411,6 +396,7 @@ install.packages("adegenet")
 
 ```
 
+\small
 Then load the libraries and read the file example file  
 _./Model-2_30_sequences_1000bp.fasta_ using function _fasta2DNAbin_.
 
@@ -420,7 +406,7 @@ library("ape")
 library("pegas")
 library("adegenet")
 
-fasta_file <- "./Model-2_30_sequences_1000bp.fasta"
+fasta_file <- "./additional_files/Model-2_30_sequences_1000bp.fasta"
 dna_dat    <- fasta2DNAbin(fasta_file)
 
 ```
@@ -431,12 +417,15 @@ library("ape")
 library("pegas")
 library("adegenet")
 
-fasta_file <- "./Model-2_30_sequences_1000bp.fasta"
+fasta_file <- "./additional_files/Model-2_30_sequences_1000bp.fasta"
 
 dna_dat <- fasta2DNAbin(fasta_file, quiet = T)
 
 ```
 
+# Reading a fasta file: visualization
+
+\small
 We can now visualize the content of the fasta file using the function *image*:
 
 ```{r, fig.width = 14, fig.height = 6}
@@ -592,7 +581,7 @@ statistics for each set of sequences, and report the values you obtain:
 
 ```{r, eval = F, echo = F}
 
-in_file_ex2 <- "Exercise_2.fasta"
+in_file_ex2 <- "additional_files/Exercise_2.fasta"
 
 in_ex2 <- fasta2DNAbin(in_file_ex2, quiet = T)
 
@@ -608,7 +597,7 @@ theta.s(in_ex2_seg)
 nuc.div(in_ex2)
 
 # ex3
-in_file_ex3 <- "Exercise_3.fasta"
+in_file_ex3 <- "additional_files/Exercise_3.fasta"
 
 in_ex3 <- fasta2DNAbin(in_file_ex3, quiet = T)
 
@@ -649,7 +638,7 @@ sequences of 1000 bp.
 
 ```{r, echo = T, message = F, fig.height = 3.5, fig.width = 10}
 
-input_file <- "./Model-4_1000_sequences_LowRecombination.fasta"
+input_file <- "./additional_files/Model-4_1000_sequences_LowRecombination.fasta"
 dna_dat_model_4 <- fasta2DNAbin(input_file, quiet = T)
 
 image(dna_dat_model_4[, seg.sites(dna_dat_model_4)], show.labels = F)
@@ -712,8 +701,8 @@ observations.
 
 ```{r, echo = F, eval = F}
 
-in_file_ex2 <- "Exercise_2.fasta"
-in_file_ex3 <- "Exercise_3.fasta"
+in_file_ex2 <- "additional_files/Exercise_2.fasta"
+in_file_ex3 <- "additional_files/Exercise_3.fasta"
 
 in_ex2 <- fasta2DNAbin(in_file_ex2, quiet = T)
 in_ex3 <- fasta2DNAbin(in_file_ex3, quiet = T)
@@ -767,7 +756,7 @@ package adegenet during this analysis.
 ```{r, echo = T, message = F}
 
 # With only one locus
-fasta_file_model_3 <- "Model-3_500000_chromosome_LD.fasta"
+fasta_file_model_3 <- "additional_files/Model-3_500000_chromosome_LD.fasta"
 dna_dat_model_3    <- fasta2DNAbin(fasta_file_model_3, quiet = T)
 
 # We will convert the data in another format using package adegenet and 
@@ -1102,9 +1091,10 @@ _If you have the time_...
 
 \tiny
 
-```{r}
+```{r, echo = F}
 
-sessionInfo()
+options(width = 100)
+print(sessionInfo(), locale = F)
 
 ```
 

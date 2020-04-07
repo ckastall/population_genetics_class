@@ -1,18 +1,19 @@
 ---
 title: |
     | DNA analysis in population genetics
-    | Practical 2, the coalescent
+    | The coalescent
 output:
-  pdf_document:
-        beamer_presentation:
-            slide_level: 1
-            theme: "Montpellier"
-            color: "beaver"
+  html_document:
+        toc: true
+  beamer_presentation:
+          slide_level: 1
+          theme: "Montpellier"
+          color: "beaver"
 date: '`25 February, 2020`'
 author: |
     | Chedly Kastally <chedly.kastally@oulu.fi>
     | Tanja Pyhäjärvi <tanja.pyhajarvi@oulu.fi>
-bibliography: 2_coalescence_CK.bib
+bibliography: coalescence_basic.bib
 link-citations: yes
 header-includes:
     - \usepackage{lscape}
@@ -46,6 +47,18 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 
 knitr::opts_chunk$set(size="tiny", cache = T)
 
+op_1 <- par(mfrow = c(1, 1),
+          oma = c(1, 1, 0, 0),
+          mar = c(1.8, 2, 1, 1),
+          mgp = c(.8, .04, 0),
+          xpd = F)
+
+op_2by3 <- par(mfrow = c(2, 3),
+          oma = c(2, 1, 0, 0),
+          mar = c(2, 2, 1, 0),
+          mgp = c(2, 1, 0),
+          xpd = NA)
+
 ```
 
 # Goals
@@ -57,27 +70,6 @@ knitr::opts_chunk$set(size="tiny", cache = T)
 
 - To understand how simple demographic processes such as the growth or decline 
   of populations impact genetic data.
-
-<!-- 1. The coalescent -->
-<!-- ---------------- -->
-<!--  -->
-<!-- - Very brief summary of the coalescent: -->
-<!--     - a model for the evolution of genes -->
-<!--     - a genealogy of genes, not a phylogeny, not a genealogy of individuals -->
-<!--     - a backward in time process -->
-
-<!-- En fait je pense que c'est assez inutile de rentrer dans ce genre de détails -->
-<!-- - Very brief summary of how the coalescent is used: -->
-<!--     - we don't *know* what is the real genealogy of genes, but we can estimate it -->
-<!--     - comparison of genealogies: very difficult -->
-<!--     - solution: summarize the information using summary statistics -->
-
-<!--  -->
-<!-- # The Package -->
-<!--  -->
-<!-- - Quick overview of the coala package: -->
-<!--     - the simulator available -->
-<!--     - the mutation model we will be using (infinite site model) -->
 
 # Some concepts: Tajima's D
 
@@ -306,7 +298,7 @@ And here's a plot of that tree:
 
 \tiny
 
-```{r, fig.width = 6, fig.height = 3.5}
+```{r, fig.width = 5, fig.height = 3.5}
 
 plot(read.tree(text = stats_model$trees[[1]][1]))
 
@@ -351,11 +343,11 @@ barplot(stats_model$sfs,
 
 ```{r, fig.width = 2.0, fig.height = 1.5, echo = F}
 
-# par(mfrow = c(1, 1),
-#           oma = c(2, 1, 0, 0),
-#           mar = c(1, 2, .5, 0),
-#           mgp = c(2, .05, 0),
-#           xpd = F)
+op <- par(mfrow = c(1, 1),
+          oma = c(2, 1, 0, 0),
+          mar = c(1, 2, .5, 0),
+          mgp = c(2, .05, 0),
+          xpd = F)
 
 par(mfrow = c(1, 1),
           oma = c(1, 1, 0, 0),
@@ -412,9 +404,9 @@ for (i in 1:6) {
 
 ```
 
-```{r, fig.width = 4, fig.height = 1.6, echo = F}
+```{r, fig.width = 3, fig.height = 1.6, echo = F}
 
-op <- par(mfrow = c(2, 3),
+op_2by3 <- par(mfrow = c(2, 3),
           oma = c(2, 1, 0, 0),
           mar = c(2, 2, 1, 0),
           mgp = c(2, 1, 0),
@@ -426,7 +418,7 @@ for (i in 1:6) {
             cex.main = .6, cex.axis = .6)
 }
 
-par(op)
+par(op_2by3)
 
 ```
 
@@ -462,7 +454,7 @@ for (i in 1:6) {
 }
 
 
-par(op)
+par(op_2by3)
 
 ```
 
@@ -500,7 +492,7 @@ plot(density(tajima_100_simulations, na.rm = T),
 
 ```{r, fig.height = 1.8, fig.width = 2.5, echo = F}
 
-op <- par(mfrow = c(1, 1),
+op_1 <- par(mfrow = c(1, 1),
           oma = c(1, 1, 0, 0),
           mar = c(1.8, 2, 1, 1),
           mgp = c(.8, .04, 0),
@@ -524,7 +516,7 @@ plot(density(tajima_100_simulations, na.rm = T),
      cex.lab = .3,
      cex.main = .3)
 
-par(op)
+par(op_1)
 
 ```
 
@@ -987,80 +979,14 @@ an alternative explanation for observing such value of Tajima's D?
 
 \tiny
 
-```{r}
+```{r, echo = F}
 
-sessionInfo()
+options(width = 100)
+print(sessionInfo(), locale = F)
 
 ```
 
 # Bibliography
 
 \tiny
-
-
-<!-- # Task 1 -->
-<!-- # Make constant population simulations -->
-<!-- # Based on simulations, can you say something about your observed data? -->
-<!-- #  -->
-<!-- # Task 2 -->
-<!-- # Experiment with the simulations -->
-<!-- # Can you find a demographic model that would fit better the observed data? -->
-<!-- # -->
-<!-- # Task 3 -->
-<!-- # What problems may the above mentioned approach have? -->
-
-<!-- [> 2. How different processes affect the coalescent <] -->
-<!-- [>  <] -->
-<!-- [> - Brief presentation of some of the processes or population characteristics we are <] -->
-<!-- [>   interested in investigating: <] -->
-<!-- [>     [> (- drift) <] <] -->
-<!-- [>     - gene-flow migration <] -->
-<!-- [>     - bottle neck <] -->
-<!-- [>     - population growth <] -->
-<!-- [>     - population structure <] -->
-<!-- [>     [> (- selection) <] <] -->
-<!-- [>  <] -->
-<!-- [> - <] -->
-
-
-```{r, eval = F, echo = F}
-
-model_decline <- coal_model(sample_size = 20,
-                           loci_number = 1000,
-                           loci_length = 100) +
-      feat_growth(rate = -50, time = 100) +
-      feat_mutation(5) +
-      sumstat_trees() +
-      sumstat_sfs() +
-      sumstat_nucleotide_div() +
-      sumstat_tajimas_d()
-
-par(mfrow = c(2, 3))
-
-for (i in 1:6) {
-    barplot(simulate(model_decline)$sfs,
-            main=paste("SFS", i))
-}
-
-for (i in 1:6) {
-    plot(read.tree(text = simulate(model_decline)$trees[[1]][1]),
-            main=paste("SFS", i))
-}
-
-par(mfrow = c(1,1))
-tajimas_d_decline <-
-    simulate(model_decline)$tajimas_d
-
-plot(density(tajimas_d_decline, na.rm = T),
-     main = "Distribution of Tajiam's D in a declining population")
-
-stat_decline <- simulate(model_decline)
-pi_decline <- stat_decline$pi
-
-plot(density(pi_decline, na.rm = T),
-     main = expression(paste("Distribution of ",
-                             pi,
-                             " in a declining population")))
-
-```
 

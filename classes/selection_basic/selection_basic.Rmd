@@ -5,7 +5,7 @@ title: |
 author: |
     | Chedly Kastally <chedly.kastally@oulu.fi>
     | Tanja Pyhäjärvi <tanja.pyhajarvi@oulu.fi>
-bibliography: 4_selection.bib
+bibliography: selection_basic.bib
 date: '`12 March, 2020`'
 output:
   pdf_document:
@@ -405,7 +405,7 @@ across the entire DNA sequence.
 ```{r read_fasta_setup_demo, eval = F, echo = T}
 
 # make sure you have the file "4_selection_lib.R" available in your path!
-source("4_selection_lib.R")
+source("./additional_files/selection_basic_lib.R")
 
 # Make sure these libraries have been installed previously, and if not, install 
 # them following the usual procedure.
@@ -413,17 +413,17 @@ library("adegenet")
 library("pegas")
 library("ape")
 
-fasta_file_model_1 <- "Model_1-50kb_contig.fasta"
+fasta_file_model_1 <- "./additional_files/Model_1-50kb_contig.fasta"
 
 # Read the fasta file
 dna_dat <- fasta2DNAbin(fasta_file_model_1)
 
 ```
 
-```{r read_fasta_setup, eval = T, echo = F}
+```{r read_fasta_setup, eval = T, echo = F, message = F}
 
 # make sure you have the file "4_selection_lib.R" available in your path!
-source("4_selection_lib.R")
+source("./additional_files/selection_basic_lib.R")
 
 # Make sure these libraries have been installed previously, and if not, install 
 # them following the usual procedure.
@@ -431,7 +431,7 @@ library("adegenet")
 library("pegas")
 library("ape")
 
-fasta_file_model_1 <- "Model_1-50kb_contig.fasta"
+fasta_file_model_1 <- "./additional_files/Model_1-50kb_contig.fasta"
 # fasta_file_model_1 <- "exercise-50kb_contig.fasta"
 
 # Read the fasta file
@@ -556,9 +556,10 @@ hist(allele_frequencies, breaks = seq(1, 19, 1)/20)
 
 \tiny
 
-```{r}
+```{r, echo = F}
 
-sessionInfo()
+options(width = 100)
+print(sessionInfo(), locale = F)
 
 ```
 
