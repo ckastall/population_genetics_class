@@ -20,7 +20,25 @@ The classes are given here in Rmarkdown, a format that can be easily converted
 to various format. However, the files provided here are built assuming they
 would be converted using pandoc to the pdf format using latex and beamer.
 
-TODO:
-- example of conversion with pandoc
-- note about the additional files required (example data)
-- citation?
+# Installation
+
+To easily compile the Rmarkdown documents (.Rmd) you can use the R package
+[rmarkdown](https://github.com/rstudio/rmarkdown). The following
+instruction require that you have that package installed in your system.
+
+```{bash}
+
+# clone the repository
+
+git clone https://github.com/ckastall/population_genetics_class
+
+# compile all the classes
+
+make
+
+# Or the one you are interested in, eg coalescence_basic.Rmd
+
+Rscript -e 'library("rmarkdown"); render("classes/coalescence_basic/coalescence_basic.Rmd", "beamer_presentation");'
+
+```
+
