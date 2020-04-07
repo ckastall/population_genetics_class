@@ -1,0 +1,1066 @@
+---
+title: |
+    | DNA analysis in population genetics
+    | Practical 2, the coalescent
+output:
+  pdf_document:
+        beamer_presentation:
+            slide_level: 1
+            theme: "Montpellier"
+            color: "beaver"
+date: '`25 February, 2020`'
+author: |
+    | Chedly Kastally <chedly.kastally@oulu.fi>
+    | Tanja Pyhäjärvi <tanja.pyhajarvi@oulu.fi>
+bibliography: 2_coalescence_CK.bib
+link-citations: yes
+header-includes:
+    - \usepackage{lscape}
+    - \newcommand{\blandscape}{\begin{landscape}}
+    - \newcommand{\elandscape}{\end{landscape}}
+    - \usepackage{float}
+    - \usepackage{xcolor}
+    - \definecolor{asparagus}{rgb}{0.53, 0.66, 0.42}
+    - \definecolor{aurometalsaurus}{rgb}{0.43, 0.5, 0.5}
+    - \definecolor{beige}{rgb}{0.96, 0.96, 0.86}
+    - \setbeamercolor{titlelike}{parent=palette primary,fg=asparagus}
+    - \setbeamercolor*{palette primary}{bg=beige, fg=asparagus}
+    - \setbeamercolor*{palette secondary}{bg=beige!90!aurometalsaurus, fg=asparagus}
+    - \setbeamercolor*{palette tertiary}{bg=aurometalsaurus, fg=asparagus}
+    - \setbeamercolor*{palette quaternary}{bg=beige, fg=asparagus}
+    - \setbeamercolor{frametitle}{bg=aurometalsaurus!10!beige}
+    - \setbeamercolor{frametitle right}{bg=aurometalsaurus!60!beige}
+    - \setbeamertemplate{itemize item}{\color{asparagus}$\blacktriangleright$}
+    - \usepackage{hyperref}
+    - \hypersetup{colorlinks,urlcolor=asparagus}
+
+---
+
+
+```{r setup, echo = F}
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+knitr::opts_chunk$set(size="tiny", cache = T)
+
+```
+
+# Goals
+
+- To be able to build and use simple coalescent models.
+
+- To be able to compute expected distributions of statistics using simulations 
+  based on different coalescent models.
+
+- To understand how simple demographic processes such as the growth or decline 
+  of populations impact genetic data.
+
+<!-- 1. The coalescent -->
+<!-- ---------------- -->
+<!--  -->
+<!-- - Very brief summary of the coalescent: -->
+<!--     - a model for the evolution of genes -->
+<!--     - a genealogy of genes, not a phylogeny, not a genealogy of individuals -->
+<!--     - a backward in time process -->
+
+<!-- En fait je pense que c'est assez inutile de rentrer dans ce genre de détails -->
+<!-- - Very brief summary of how the coalescent is used: -->
+<!--     - we don't *know* what is the real genealogy of genes, but we can estimate it -->
+<!--     - comparison of genealogies: very difficult -->
+<!--     - solution: summarize the information using summary statistics -->
+
+<!--  -->
+<!-- # The Package -->
+<!--  -->
+<!-- - Quick overview of the coala package: -->
+<!--     - the simulator available -->
+<!--     - the mutation model we will be using (infinite site model) -->
+
+# Some concepts: Tajima's D
+
+Tajima's D [@tajima_statistical_1989] is a population genetic test statistic that measures the distance 
+$d$ between two estimates of genetic diversity.
+
+$D = \frac{d}{\sqrt{\hat{V}(d)}}$
+
+Where:
+
+- $d = \hat{k} - {\frac{S}{a_1}}$
+- $\hat{k}$ and $\frac{S}{a_1}$ are two estimates of the expected number of 
+  single nucleotide polymorphisms between two DNA sequences.
+
+In a _neutrally evolving_ population of _constant size_, Tajima's D is expected 
+to be equal to ***0***.
+
+# The Package: installing and loading coala
+
+\small
+
+During this session, we will use the package `coala` titled: *A Framework for 
+Coalescent Simulation* [@staab_2016].
+
+Additionally, to plot genealogies, we will use the package `ape` titled: 
+_Analyses of Phylogenetics and Evolution_ [@paradis_2018].
+
+First, you have to install the packages using the function `install.packages`.
+
+\tiny
+
+```{r, eval = F}
+# Execute these commands only once.
+install.packages("coala")
+install.packages("ape")
+
+```
+
+# The Package: installing and loading coala
+
+\small
+
+Then, you can load the packages using the function `library`.
+
+\tiny
+
+```{r}
+library("coala")
+library("ape")
+```
+
+\small
+
+The `coala` package can use different simulators of coalescent, we will use the 
+one installed by default: "scrm".
+
+Check more details about the packages using the function `help`.
+
+\tiny
+
+```{r, eval = F}
+help(package = "coala")
+help(package = "ape")
+```
+
+# Building a model: a stationary population
+
+\small
+
+Let's start with a simple model of a stationary population using the function 
+`coal_model`.
+
+A stationary population is a stable population which effective size does not 
+change through time. It's the simplest model used in population genetics.
+
+We store the model in the variable `model`.
+
+\tiny
+
+```{r}
+
+model <- coal_model(sample_size = 10,
+                    loci_number = 50,
+                    loci_length = 1000)
+
+```
+
+This model has one population with sample size 10 and 50 locus of length 1000.
+
+# Building a model: adding features
+
+\small
+
+We add mutations to the model with a rate 5, and using the IFS model of 
+mutation.
+
+\tiny
+
+```{r}
+
+model <- model + feat_mutation(5, model = "IFS")
+
+```
+
+\small
+
+With such model, we can expect to have 5 mutation per locus.
+
+# Building a model: statistics
+
+\small
+
+We will soon use the coalescent model we have defined to produce data. Genetic 
+data, however, can be described in many different ways.
+
+Summary statistics, such as the nucleotide genetic diversity $\pi$, are used to 
+summarize genetic data in such a way that different aspects of the data are 
+captured (or _summarized_) and can then be compared efficiently.
+
+There are many different summary statistics and depending on the question or the 
+model you are interested in, different statistics should be used.
+
+# Building a model: statistics
+
+\small
+
+Here we will capture:
+
+- a gene genealogy (`sumstat_trees`), _i.e._ a coalescent, produced during each simulation.
+- the site frequency spectrum (`sumstat_sfs`), which is not a single statistic, but a distribution.
+- finally we will compute one statistic: Tajima's D (`sumstat_tajimas_d`). Later, we will also use $\pi$.
+
+\tiny
+
+```{r}
+
+model <- model +
+    sumstat_trees() +
+    sumstat_sfs() +
+    sumstat_tajimas_d()
+
+```
+
+# Building a model
+
+You can check aspects of the model by printing it. Make sure you understand 
+every line printed, and verify that this is a correct description of the 
+model you want to explore.
+
+\tiny
+
+```{r}
+model
+```
+
+# Simulations
+
+Now, let's simulate data using the model we have built.
+
+We use the function `simulate` and store the results in the variable 
+`stats_model`
+
+\tiny
+
+```{r}
+
+stats_model <- simulate(model,
+                        nsim = 1,
+                        seed = 20)
+
+```
+
+# Inspecting the results
+
+\small 
+
+We can now inspect the different elements of the object created and plot them.
+
+\tiny
+
+```{r}
+# str gives the structure of an object. To avoid too many messages/unnecessary 
+# details, we restrict the output with some options
+str(stats_model, max.level = 1,  nchar.max = 80)
+```
+
+\small
+
+Notice the different elements, all accessible using \$:
+
+\tiny
+
+- `stats_model$trees`: it contains a genealogy for each locus simulated
+- `stats_model$sfs`: it contains the site frequency spectrum (sfs) computed over all loci
+- `stats_model$tajimas_d`: it contains the Tajimas'D statistics computed for each locus
+- `stats_model$cmds`: it contains the exact command used to simulate the data using our model
+- `stats_model$simulator`: it contains the simulator used, in our case scrm, version 1.7.3-1
+
+# Inspecting the results: genealogy
+
+\small
+
+Let's take a closer look at each statistics.
+
+The tree is written in a "Newick" format, a standard format used to describe 
+genealogies.
+
+\tiny
+
+```{r, eval = F}
+
+# To look at the genealogy of the first locus
+stats_model$trees[[1]]
+
+```
+
+```{r, echo = F}
+
+cat(sprintf("%s\n", gsub("):", "):\n", stats_model$trees[[1]])))
+
+```
+
+# Inspecting the results: genealogy
+
+And here's a plot of that tree:
+
+\tiny
+
+```{r, fig.width = 6, fig.height = 3.5}
+
+plot(read.tree(text = stats_model$trees[[1]][1]))
+
+```
+
+# Inspecting the results: Tajima's D
+
+\small
+Here are now Tajima's D values obtained for the first 10 loci during our 
+simulation:
+
+\tiny
+
+```{r}
+stats_model$tajimas_d[1:10]
+```
+
+# Inspecting the results: the site frequency spectrum
+
+\tiny
+
+And finally, here is the site frequency spectrum:
+
+\tiny
+
+```{r}
+stats_model$sfs
+```
+
+\tiny
+
+And its plot:
+
+\tiny
+
+```{r, eval = F}
+
+barplot(stats_model$sfs,
+        main = "Site frequency spectrum")
+
+```
+
+```{r, fig.width = 2.0, fig.height = 1.5, echo = F}
+
+# par(mfrow = c(1, 1),
+#           oma = c(2, 1, 0, 0),
+#           mar = c(1, 2, .5, 0),
+#           mgp = c(2, .05, 0),
+#           xpd = F)
+
+par(mfrow = c(1, 1),
+          oma = c(1, 1, 0, 0),
+          mar = c(1.8, 2, 1, 1),
+          mgp = c(.8, .04, 0),
+          xpd = F)
+
+
+barplot(stats_model$sfs,
+        main = "Site frequency spectrum",
+        names.arg = c(1:9),
+        tck = -.015,
+        cex.main = .5,
+        cex.lab = .5,
+        cex.axis = .5,
+        cex.names = .5)
+
+par(op)
+
+
+```
+
+# Stochasticity of the coalescent
+
+\normalsize
+
+The coalescent is a random (or _stochastic_) process.
+
+This is because, at each generation, gene copies have a given probability to 
+coalesce, that depends on the effective size of the population. But there is no 
+determinism of when this will happen.
+
+As a result, coalescent simulations using the exact same model will produce,
+each time, different results.
+
+# Stochasticity of the coalescent
+
+\tiny
+
+To illustrate the stochasticity of the coalescent, let's produce multiple SFS 
+plots using the same model.
+
+Notice the variability of the results.
+
+```{r, eval = F, echo = T}
+
+# This is to get 2*3 plots together
+par(mfrow = c(2, 3))
+
+for (i in 1:6) {
+    barplot(simulate(model)$sfs,
+            main = paste("SFS", i))
+}
+
+```
+
+```{r, fig.width = 4, fig.height = 1.6, echo = F}
+
+op <- par(mfrow = c(2, 3),
+          oma = c(2, 1, 0, 0),
+          mar = c(2, 2, 1, 0),
+          mgp = c(2, 1, 0),
+          xpd = NA)
+
+for (i in 1:6) {
+    barplot(simulate(model)$sfs,
+            main=paste("SFS", i),
+            cex.main = .6, cex.axis = .6)
+}
+
+par(op)
+
+```
+
+# Stochasticity of the coalescent
+
+\tiny
+
+Likewise, for genealogies, we can plot the genealogies of different (and 
+independent loci) or simulate new one each time.
+
+```{r, eval = F, echo = T}
+
+for (i in 1:6) {
+    plot(read.tree(text = simulate(model)$trees[[1]][1]),
+            main = paste("Gene genealogy", i))
+}
+
+```
+
+```{r, fig.width = 4, fig.height = 2, echo = F}
+
+op <- par(mfrow = c(2, 3),
+          oma = c(2, 1, 0, 0),
+          mar = c(2, 2, 1, 0),
+          mgp = c(2, 1, 0),
+          xpd = NA)
+
+for (i in 1:6) {
+    plot(read.tree(text = simulate(model)$trees[[1]][1]),
+            main = paste("Gene genealogy", i),
+            cex = .5,
+            cex.main = .5)
+}
+
+
+par(op)
+
+```
+
+# Stochasticity of the coalescent
+
+\normalsize
+
+Since the coalescent is random, instead of relying on just a few simulations 
+to describe a model, we run many simulations to evaluate a distribution 
+of the results we can expect from a model. This distribution captures the 
+variability, or _stochasticity_, of the simulations.
+
+For instance with our model, we can plot the expected distribution of Tajima's 
+D, based on the 50 independent loci we have simulated.
+
+To go even further, we can run 100 new independent simulations, for a total of 5000 loci.
+
+# Stochasticity of the coalescent
+
+\tiny
+
+```{r, eval = F}
+
+# Let's run 100 simulations and assign the result in a variable
+stats_100_simulations <- simulate(model, nsim = 100, seed = 20)
+
+# we extract the statistic
+tajima_100_simulations <- sapply(stats_100_simulations, function(x) x$tajimas_d)
+
+# Here's a density plot of the result
+plot(density(tajima_100_simulations, na.rm = T),
+     main = "Neutral Distribution of Tajiam's D")
+
+```
+
+```{r, fig.height = 1.8, fig.width = 2.5, echo = F}
+
+op <- par(mfrow = c(1, 1),
+          oma = c(1, 1, 0, 0),
+          mar = c(1.8, 2, 1, 1),
+          mgp = c(.8, .04, 0),
+          xpd = F)
+
+# Let's run 100 simulations and assign the result in a variable.
+# Each simulation holds 100 loci, for a total of 10000 loci simulated.
+
+stats_100_simulations <- simulate(model, nsim = 100, seed = 20)
+
+# we extract the statistic
+tajima_100_simulations <-
+    sapply(stats_100_simulations,
+           function(x) x$tajimas_d)
+
+# Here's a density plot of the result
+plot(density(tajima_100_simulations, na.rm = T),
+     main = "Neutral Distribution of Tajiam's D",
+     tck = -.03,
+     cex.axis = .3,
+     cex.lab = .3,
+     cex.main = .3)
+
+par(op)
+
+```
+
+<!-- # Stochasticity of the coalescent -->
+<!-- The stochasticity of the coalescent reflects in a way -->
+
+<!-- TODO: here re-do the same plots but using more loci vs more samples, and show  -->
+<!-- some differences of how different statistics behave -->
+<!-- je pense que c'est inutile au final -->
+
+# Exploring the effects of parameters
+
+\small
+
+An important aspect of population genetics is to understand how various 
+parameters, such as the population size or the mutation rate, impacts genetic 
+data.
+
+To address this type of question, we can use coalescent models to measure how 
+various summary statistics change when changing the parameter values of the 
+model.
+
+To illustrate this approach, we will use our simple model and explore how the 
+mutation rate $\theta$ affects genetic diversity $\pi$ and Tajima's D.
+
+# Exploring the effects of parameters: setting up the model
+
+\small
+
+Let's re-define our model, but this time we will not use a single mutation 
+rate, as we want to explore multiple values of this parameter during our 
+simulations.
+
+Instead, we will set a _prior_ using the function `par_prior`, which means that 
+we define a set of probabilities for each possible values we allow for the 
+mutation rate.
+
+In our case we define the prior as a uniform distribution from 1 to 100 using the 
+function `runif`. At the beginning of each simulation, a new mutation rate will 
+be randomly sampled from that distribution and used as a parameter of the 
+model.
+
+# Exploring the effects of parameters: the prior
+
+Here is the distribution of 1000 points sampled from our prior.
+
+\tiny
+
+
+```{r, eval = F}
+
+prior_theta_sample_1000 <- 
+    runif(n = 1000,
+          min = 1,
+          max = 100)
+
+hist(prior_theta_sample_1000,
+     main = "A uniform prior distribution from 0 to 100",
+     xlab = "theta")
+
+```
+
+```{r, fig.height = 1.5, fig.width = 4, echo = F}
+
+op <- par(mfrow = c(1, 1),
+          oma = c(1, 1, 0, 0),
+          mar = c(2, 2, 1, 1),
+          mgp = c(.8, .001, 0),
+          xpd = FALSE)
+
+prior_theta_sample_1000 <- 
+    runif(n = 1000,
+          min = 1,
+          max = 100)
+
+hist(prior_theta_sample_1000,
+     main = "A uniform prior distribution from 0 to 100",
+     tck = -.03,
+     xlab = expression(theta), cex.axis = .3, cex.lab = .5, cex.main = .5)
+
+par(op)
+
+```
+
+# Exploring the effects of parameters: the prior
+
+Now let's define our model using this prior. Note that here we use `n = 1`,
+since we draw only one $\theta$ value from our prior during each simulation.
+
+\tiny 
+
+```{r}
+
+prior_theta <-
+    par_prior("theta",
+              runif(n = 1, min = 1, max = 100))
+
+model <-
+    coal_model(sample_size = 10,
+               loci_number = 50) +
+    feat_mutation(prior_theta)
+
+```
+
+# Exploring the effects of parameters: the statistics
+
+We can now add statistics to our model and run 100 simulations.
+
+\tiny
+
+```{r}
+
+model <- model +
+    sumstat_nucleotide_div() +
+    sumstat_tajimas_d()
+
+stats_results_100 <-
+    simulate(model, nsim = 100)
+
+```
+
+# Exploring the effects of parameters: the results
+
+\small
+
+Let's extract the nucleotide diversity $\pi$ results and the $\theta$ values used 
+during the simulations.
+
+\tiny
+
+```{r, eval = F}
+
+# Note here that we use a loop using a function called "sapply".
+# These commands will run a function over each element of stats_results_100.
+
+mean_pi <- sapply(stats_results_100, function(x) mean(x$pi))
+
+# To see what happens exactly, you can try to run the following commands and 
+# compare the output to those registered in mean_pi
+for (i in 1:3) {
+    mean(stats_results_100[[i]]$pi)
+    mean(stats_results_100[[i]]$pi)
+    mean(stats_results_100[[i]]$pi)
+}
+
+mean_pi[1:3]
+
+# Likewise, to extract theta:
+theta   <- sapply(stats_results_100,
+                  function(x) x$pars[["theta"]])
+
+```
+
+# Exploring the effects of parameters: the results
+
+\small
+
+We can then plot $\pi$ ~ $\theta$.
+
+\tiny
+
+```{r, eval = F}
+
+plot(theta, mean_pi, pch = 19,
+     xlab = "theta",
+     ylab = "Mean pi")
+
+# We can add a linear regression of mean_pi ~ theta
+abline(lm(mean_pi ~ theta),
+       col = "red2", lty = 3)
+
+```
+
+```{r, fig.height = 1.8, fig.width = 3.5, echo = F}
+
+op <- par(mfrow = c(1, 1),
+          oma = c(1, 1, 0, 0),
+          mar = c(2, 2, 1, 1),
+          mgp = c(.8, .001, 0),
+          xpd = FALSE)
+
+mean_pi <- sapply(stats_results_100, function(x) mean(x$pi))
+theta   <- sapply(stats_results_100, function(x) x$pars[["theta"]])
+
+plot(theta, mean_pi, pch = 19, cex = .6,
+     tck = -.03,
+     cex.main = .6, cex.lab = .6, cex.axis = .3,
+     xlab = expression(theta),
+     ylab = expression(paste("Mean ", pi)))
+
+abline(lm(mean_pi ~ theta), col = "red2", lty = 3)
+
+par(op)
+
+```
+
+# Exploring the effects of parameters: the results
+
+\tiny
+
+Let's repeat this with Tajima's D
+
+***Q1.*** Describe the relationship between mutation rate and nucleotide 
+diversity on one hand, and between mutation rate and Tajima's D. Are these results 
+expected? Why?
+
+\tiny
+
+```{r, eval = F}
+
+tajimas_d   <- sapply(stats_results_100, function(x) mean(x$tajimas_d))
+
+plot(theta, tajimas_d, pch = 19,
+     xlab = expression(theta), ylab = "Tajima's D")
+
+# We can add a linear regression of tajimas_d ~ theta
+abline(lm(tajimas_d ~ theta), col = "red2", lty = 3)
+
+```
+
+```{r, fig.height = 2, fig.width = 4, echo = F}
+
+op <- par(mfrow = c(1, 1),
+          oma = c(1, 1, 0, 0),
+          mar = c(2, 2, 1, 1),
+          mgp = c(.8, .001, 0),
+          xpd = FALSE)
+
+tajimas_d <- sapply(stats_results_100, function(x) mean(x$tajimas_d))
+theta     <- sapply(stats_results_100, function(x) x$pars[["theta"]])
+
+
+plot(theta, tajimas_d, pch = 19, cex = .6,
+     tck = -.01,
+     cex.main = .6, cex.lab = .6, cex.axis = .3,
+     xlab = expression(theta), ylab = "Tajima's D")
+
+abline(lm(tajimas_d ~ theta), col = "red2", lty = 3)
+
+par(op)
+
+```
+
+# Exploring demographic effects: growth of a population
+
+\small
+
+Now, let's explore how demographic processes impact the coalescent and how it 
+is reflected in the genealogies simulated or the summary statistics 
+distributions. We start with a model of a growing population using the function 
+`feat_growth`.
+
+We will use a model of a single population of 20 samples, 1000 loci of length 
+100. We will use a growth rate of 50.
+
+Let's add a mutation rate of 5, and require different summary statistics.
+
+\tiny
+
+```{r}
+
+model_growth <- coal_model(sample_size = 20,
+                           loci_number = 1000,
+                           loci_length = 100) +
+      feat_growth(rate = 50,
+                  population = 1,
+                  time = 0) +
+      feat_mutation(5) +
+      sumstat_trees() +
+      sumstat_sfs() +
+      sumstat_nucleotide_div() +
+      sumstat_tajimas_d()
+
+```
+
+<!-- # part 2 -->
+
+
+# A growing population: the site frequency spectrum
+
+\tiny
+
+Let's look at the site frequency spectrum expected from a model of a growing 
+population.
+
+***Q2.*** What differences do you see between the Site Frequency Spectra 
+produced with a model of one growing population compared to those obtained with 
+a model of a stationary population?
+
+```{r, eval = F, echo = T}
+
+# This is to get 2*3 plots together
+par(mfrow = c(2, 3))
+
+for (i in 1:6) {
+    barplot(simulate(model_growth)$sfs,
+            main=paste("SFS", i))
+}
+
+```
+
+```{r, fig.width = 4, fig.height = 1.8, echo = F}
+
+op <- par(mfrow = c(2, 3),
+          oma = c(2, 1, 0, 0),
+          mar = c(2, 2, 1, 0),
+          mgp = c(2, 1, 0),
+          xpd = NA)
+
+for (i in 1:6) {
+    barplot(simulate(model_growth)$sfs,
+            main=paste("SFS", i),
+            cex.main = .6, cex.axis = .6)
+}
+
+par(op)
+
+```
+
+# A growing population: genealogies
+
+\tiny
+
+Likewise, for genealogies.
+
+***Q3.*** What differences do you see in the genealogies obtained from a 
+coalescent model of a growing population compared to those from a model of a 
+stationary population?
+
+```{r, eval = F, echo = T}
+
+for (i in 1:6) {
+    plot(read.tree(text = simulate(model_growth)$trees[[1]][1]),
+            main = paste("SFS", i))
+}
+
+# Return to the default configuration of the plot device
+par(mfrow = c(1,1))
+
+```
+
+```{r, fig.width = 4, fig.height = 2, echo = F}
+
+op <- par(mfrow = c(2, 3),
+          oma = c(2, 1, 0, 0),
+          mar = c(2, 2, 1, 0),
+          mgp = c(2, 1, 0),
+          xpd = NA)
+
+for (i in 1:6) {
+    plot(read.tree(text = simulate(model_growth)$trees[[1]][1]),
+            main=paste("Gene genealogy", i),
+            cex = .5,
+            cex.main = .5)
+}
+
+par(op)
+
+```
+
+# A growing population: Tajima's D
+
+\tiny
+
+Finally, here's Tajima's D distribution.
+
+***Q4.*** How does the distribution of Tajima's D produced with a model of a 
+growing population compare to that produced with a model of a stationary 
+population? Is this what you would have expected? Why?
+
+\tiny
+
+```{r, eval = F}
+
+tajimas_d_growing <-
+    simulate(model_growth)$tajimas_d
+
+plot(density(tajimas_d_growing),
+     main = "Distribution of Tajiam's D in a growing population")
+
+```
+
+```{r, fig.height = 1.8, fig.width = 3, echo = F}
+
+op <- par(mfrow = c(1, 1),
+          oma = c(1, 1, 0, 0),
+          mar = c(1.8, 2, 1, 1),
+          mgp = c(.8, .04, 0),
+          xpd = F)
+
+tajimas_d_growing <-
+    simulate(model_growth)$tajimas_d
+
+plot(density(tajimas_d_growing, na.rm = T),
+     main = "Distribution of Tajiam's D in a growing population",
+     tck = -.03,
+     cex.axis = .3,
+     cex.lab = .3,
+     cex.main = .3)
+
+par(op)
+
+```
+
+# Your turn now!
+
+\tiny
+
+It's your turn: reproduce these analyses now exploring how a model with a 
+***declining population*** behave. You can use the function `feat_growth` with 
+a ***negative growth rate*** to define a decline of the population.
+
+Attention: a declining population has an effective size that increases as we go back in 
+time. Consequently, if the decline never ends, the coalescence probability of 
+the two most ancestral line will never cease to decrease and will become more 
+and more unlikely. This is a problem for a simulator as it will not be able to 
+end simulating the model.
+
+A model of population that declines for a very long time is not biologically 
+realistic: at some point in the past, the population must have been small, 
+_i.e._ when it first appeared. It then must have started expanding, 
+before eventually declining.
+
+Take this into consideration when implementing a declining population with 
+`feath_growth`. You can for instance use an appropriate time to specify when 
+the declining process ended(/started) as you go backward(/forward) in time.
+
+# Your turn now!
+
+\tiny
+
+Provide an R script that uses a model of a declining population to produce 
+plots of:
+
+- the distribution of Tajima's D
+- some examples of site frequency spectra
+- some examples of genealogies
+- The variation of the mean nucleotide diversity according to a mutation rate 
+  theta sampled from a uniform prior ranging from 1 to 50
+
+Finally, you have to answer the following questions:
+
+***Q5.*** What trend do you observe in the site frequency spectra of a coalescent 
+model of population with a declining effective size?
+
+***Q6.*** How do genealogies of loci sampled in a declining population tend to 
+differ from those sampled in a stationary population?
+
+***Q7.*** What is the mean value of Tajima's D computed over 20 samples and 1000 loci 
+simulated using a coalescent model of a declining population, with a mutation 
+rate of 5?
+
+***Q8.*** Imagine that you were given DNA polymorphism on 20 samples of _Pinus 
+sylvestris_ and, using that genetic material, you computed a Tajima's D of -1.6.
+Based on all the simulations you did today, what would be your guess on the 
+recent demographic history of the population you had samples from? Is there 
+an alternative explanation for observing such value of Tajima's D?
+
+# Session Info {.allowframebreaks} 
+
+\tiny
+
+```{r}
+
+sessionInfo()
+
+```
+
+# Bibliography
+
+\tiny
+
+
+<!-- # Task 1 -->
+<!-- # Make constant population simulations -->
+<!-- # Based on simulations, can you say something about your observed data? -->
+<!-- #  -->
+<!-- # Task 2 -->
+<!-- # Experiment with the simulations -->
+<!-- # Can you find a demographic model that would fit better the observed data? -->
+<!-- # -->
+<!-- # Task 3 -->
+<!-- # What problems may the above mentioned approach have? -->
+
+<!-- [> 2. How different processes affect the coalescent <] -->
+<!-- [>  <] -->
+<!-- [> - Brief presentation of some of the processes or population characteristics we are <] -->
+<!-- [>   interested in investigating: <] -->
+<!-- [>     [> (- drift) <] <] -->
+<!-- [>     - gene-flow migration <] -->
+<!-- [>     - bottle neck <] -->
+<!-- [>     - population growth <] -->
+<!-- [>     - population structure <] -->
+<!-- [>     [> (- selection) <] <] -->
+<!-- [>  <] -->
+<!-- [> - <] -->
+
+
+```{r, eval = F, echo = F}
+
+model_decline <- coal_model(sample_size = 20,
+                           loci_number = 1000,
+                           loci_length = 100) +
+      feat_growth(rate = -50, time = 100) +
+      feat_mutation(5) +
+      sumstat_trees() +
+      sumstat_sfs() +
+      sumstat_nucleotide_div() +
+      sumstat_tajimas_d()
+
+par(mfrow = c(2, 3))
+
+for (i in 1:6) {
+    barplot(simulate(model_decline)$sfs,
+            main=paste("SFS", i))
+}
+
+for (i in 1:6) {
+    plot(read.tree(text = simulate(model_decline)$trees[[1]][1]),
+            main=paste("SFS", i))
+}
+
+par(mfrow = c(1,1))
+tajimas_d_decline <-
+    simulate(model_decline)$tajimas_d
+
+plot(density(tajimas_d_decline, na.rm = T),
+     main = "Distribution of Tajiam's D in a declining population")
+
+stat_decline <- simulate(model_decline)
+pi_decline <- stat_decline$pi
+
+plot(density(pi_decline, na.rm = T),
+     main = expression(paste("Distribution of ",
+                             pi,
+                             " in a declining population")))
+
+```
+

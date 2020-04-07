@@ -1,0 +1,112 @@
+% vim:ft=tex:
+%
+\documentclass[8pt]{beamer}
+
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage[]{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{pdfpages}
+\usepackage{enumitem}
+
+\usetheme{Montpellier}
+\usecolortheme{beaver}
+\setbeamertemplate{navigation symbols}{}
+
+\usepackage{xcolor}
+
+\definecolor{asparagus}{rgb}{0.53, 0.66, 0.42}
+\definecolor{aurometalsaurus}{rgb}{0.43, 0.5, 0.5}
+\definecolor{beige}{rgb}{0.96, 0.96, 0.86}
+\setbeamercolor{titlelike}{parent=palette primary,fg=asparagus}
+\setbeamercolor*{palette primary}{bg=beige, fg=asparagus}
+\setbeamercolor*{palette secondary}{bg=beige!90!aurometalsaurus, fg=asparagus}
+\setbeamercolor*{palette tertiary}{bg=aurometalsaurus, fg=asparagus}
+\setbeamercolor*{palette quaternary}{bg=beige, fg=asparagus}
+\setbeamercolor{frametitle}{bg=aurometalsaurus!10!beige}
+\setbeamercolor{frametitle right}{bg=aurometalsaurus!60!beige}
+\setbeamertemplate{itemize item}{\color{asparagus}$\blacktriangleright$}
+
+\hypersetup{colorlinks,urlcolor=asparagus}
+
+\setlist[itemize]{itemsep=10pt, label={\color{asparagus}$\blacktriangleright$}}
+
+\usepackage{tikz}
+% \usetikzlibrary{positioning, decorations.pathmorphing, shapes}
+
+% \usetikzlibrary{shapes.geometric,arrows.meta}
+\usepackage[edges]{forest}
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\usetikzlibrary{positioning, decorations.pathmorphing, shapes, shapes.geometric,arrows.meta}
+
+\title{DNA analysis in population genetics\\
+Practical 4, Selection}
+
+\date{12 March, 2020}
+
+\author{
+    \texorpdfstring{
+        \begin{columns}
+              \column{.45\linewidth}
+              \centering
+              Chedly Kastally\\
+              \href{mailto:chedly.kastally@oulu.fi}{chedly.kastally@oulu.fi}
+              \column{.45\linewidth}
+              \centering
+              Tanja Pyh{\"a}j{\"a}rvi\\
+              \href{mailto:tanja.pyhajarvi@oulu.fi}{tanja.pyhajarvi@oulu.fi}
+        \end{columns}
+    % \texorpdfstring{}
+    }
+    {Kastally, Chedly \and Tanja Pyh{\"a}j{\"a}rvi}
+}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}
+    \frametitle{Genetic variation}
+
+    \begin{itemize}
+    
+        \item<1-> Demographic processes, as we have seen previously,
+            have great impact on genetic variation.
+
+        \item<2-> Today, we will see that selection, another fundamental
+            process of evolution, can greatly impact genetic variation.
+
+        \item<3-> We will use R to explore the impact of selection,
+            mesure its relative importance to drift, and how selection
+            impact different summary statistics commonly used in
+            population genetics.
+
+    \end{itemize}
+
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Goals}
+
+\begin{itemize}
+
+    \item Familiarize yourself with the effect of selection and genetic drift on allele 
+    frequency.
+
+    \item Learn how selection affect patterns of genetics diversity.
+
+    \item Compute and plot summary statistics that can be affected by selection.
+
+\end{itemize}
+    
+\end{frame}
+
+\end{document}

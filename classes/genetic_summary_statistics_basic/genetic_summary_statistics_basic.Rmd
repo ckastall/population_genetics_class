@@ -1,0 +1,1114 @@
+---
+title: |
+    | DNA analysis in population genetics
+    | Practical 3, Summary statistics and Linkage Disequilibrium
+author: |
+    | Chedly Kastally <chedly.kastally@oulu.fi>
+    | Tanja Pyhäjärvi <tanja.pyhajarvi@oulu.fi>
+bibliography: 3_real_data_statistics.bib
+output:
+  pdf_document:
+        beamer_presentation:
+            slide_level: 1
+            theme: "Montpellier"
+            color: "beaver"
+link-citations: yes
+header-includes:
+    - \usepackage{lscape}
+    - \newcommand{\blandscape}{\begin{landscape}}
+    - \newcommand{\elandscape}{\end{landscape}}
+    - \usepackage{float}
+    - \usepackage{xcolor}
+    - \definecolor{asparagus}{rgb}{0.53, 0.66, 0.42}
+    - \definecolor{aurometalsaurus}{rgb}{0.43, 0.5, 0.5}
+    - \definecolor{beige}{rgb}{0.96, 0.96, 0.86}
+    - \setbeamercolor{titlelike}{parent=palette primary,fg=asparagus}
+    - \setbeamercolor*{palette primary}{bg=beige, fg=asparagus}
+    - \setbeamercolor*{palette secondary}{bg=beige!90!aurometalsaurus, fg=asparagus}
+    - \setbeamercolor*{palette tertiary}{bg=aurometalsaurus, fg=asparagus}
+    - \setbeamercolor*{palette quaternary}{bg=beige, fg=asparagus}
+    - \setbeamercolor{frametitle}{bg=aurometalsaurus!10!beige}
+    - \setbeamercolor{frametitle right}{bg=aurometalsaurus!60!beige}
+    - \setbeamertemplate{itemize item}{\color{asparagus}$\blacktriangleright$}
+    - \setbeamertemplate{itemize subitem}{\color{asparagus}---}
+
+---
+
+```{r setup, echo = F}
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+knitr::opts_chunk$set(size="tiny", cache = T)
+```
+
+# Goals
+
+- Practice reading and manipulating genetic data with R:
+    - read a fasta file
+    - read a vcf file
+
+- Compute and plot summary statistics:
+    - compute and plot the site frequency spectrum
+    - compute and plot the expected site frequency spectrum
+    - compute Tajima's D & $\pi$
+    - compute Linkage disequilibrium related statistics: D' and $r^2$
+
+- Perform the 4 gametes test on a set of sequences
+    - infer the minimum number of recombination events
+    - model the $r^2$ decay
+    - linkage mapping using $r^2$
+
+<!-- - ABC? probably not -->
+
+<!-- # Reminder: CK TODO: -->
+<!--  -->
+<!-- - Mention some tutorials on how to learn more about R and how to use it -->
+<!--  -->
+<!-- - Quality checking etc, franchement je pense que ce n'est pas intéressant. On  -->
+<!--   ne peut pas en 3h leur parler de toutes les statistiques, et en même  -->
+<!--   expliquer comment faire du QC, en plus ils n'ont aucune notion de ce qu'on a  -->
+<!--   fait pour générer un fichier vcf. -->
+<!--  -->
+<!-- - Some reminders on how to use Rstudio: -->
+<!--     - the different windows -->
+<!--     - write your code in a script/text file, run the code by "sending" the line to the console -->
+<!--     - save your script regularly -->
+<!--     - learn about the environment window -->
+<!--     - learn about the help and plotting windows -->
+<!--     - learn how to get help from inside R. -->
+<!--  -->
+<!-- # Reading input data: a vcf file -->
+<!--  -->
+<!-- - Reminder of the vcf standard -->
+
+# Read a library file
+
+Today you will use some custom made function, you have to load the file 
+*3_real_data_statistics_lib.R* to have them available to you, using the 
+function *source*.
+
+Make sure it is loaded properly and you have no error message when running the 
+function *source*.
+
+```{r}
+library_file <- "./3_real_data_statistics_lib.R"
+source(library_file)
+```
+
+# Packages: vcfR, ape, pegas, adegenet
+
+Additionally, we will be using various packages, notably:
+
+- _vcfR_, a package to manipulate and visualize vcf files
+- _ape_, diverse functions related to phylogenetics and evolution 
+- _pegas_, function to compute various statistics
+- _adegenet_, package to perform analyses on large genetic data, spatial 
+  analyses and multivariate analyses.
+
+```{r, echo = F}
+library("vcfR")
+```
+
+```{r, eval = F}
+install.packages("vcfR") # only the first time
+library("vcfR")
+
+# To get a better understanding of the package and the functions available in it.
+help(package = "vcfR")
+
+# Feel free to check a tutorial made by the authors of vcfR on how to use their 
+# package:
+
+vignette("intro_to_vcfR", package = "vcfR")
+
+```
+
+# Reading the vcf file
+
+The first step is to read the vcf file using the function _read.vcfR_.
+
+```{r, eval = F}
+
+# Let's check the manual page of the function read.vcfR
+help("read.vcfR", package = "vcfR")
+
+# Let us define the input file in a variable "input_vcf"
+input_vcf_model_1 <- "./Model-1_10000_indep_markers.vcf"
+
+# We now read the input file and assign the result to the variable 
+# "vcf_dat_model_1"
+vcf_dat_model_1 <- read.vcfR(input_vcf_model_1)
+
+```
+
+# Exploring the vcfR class object
+
+\small
+A vcfR object has 3 main components:
+
+- *\@meta*: it contains information about how the vcf file was generated and 
+  about the content of the file.
+- *\@fix*: one line per locus, or position, described and 9 information column, 
+  including notably the contig name ($CHROM$), position ($POS$), and the reference 
+  and alternate alleles ($REF$, $ALT$)
+- *\@gt*: the genotype values for each sample, this is the main part of the 
+  file, where the data is stored
+
+# Exploring the vcfR class object, details {.allowframebreaks}
+
+```{r}
+
+# Check what the object look like
+str(vcf_dat_model_1)
+
+head(vcf_dat_model_1@meta)
+head(vcf_dat_model_1@fix)
+head(vcf_dat_model_1@gt[1:5, 1:5])
+
+```
+
+<!-- # Quality checking -->
+
+# Building the Site Frequency Spectrum {.allowframebreaks}
+
+\small
+Let's extract the data we need to build the ***site frequency spectrum*** 
+(SFS). We can then manipulate the data such that alleles are either "0" (for 
+the ancestral state) or "1" (for the derived state).
+
+Note that since we assume here that we have correctly assigned the state of the 
+allele, we call this SFS, the unfolded, or derived, ***site frequency 
+spectrum***.
+
+By treating the alleles as numeric values, it will be then easier to compute 
+allele counts and frequencies.
+
+```{r}
+
+# We get the genotypes using function "extract.gt"
+gt_matrix <- extract.gt(vcf_dat_model_1)
+
+# The alleles are represented as 0 and 1 in the matrix, but they are treated as 
+# characters by default. To make our life easier, we will convert them into 
+# numeric type
+mode(gt_matrix) <- "numeric"
+
+# Since we have 0s and 1s in the row, counting the number of 1s in each row is 
+# equivalent to compute the sum of all cells in each row, which can be done 
+# with function "rowSums".
+derived_allele_count <- rowSums(gt_matrix)
+
+# Let's count the number of samples at each row: it's the number of column
+nsamples <- ncol(gt_matrix)
+
+# Let's compute the frequency of the derived allele at each row
+derived_allele_frequencies <- derived_allele_count / nsamples
+```
+
+# Plotting the Site Frequency Spectrum
+
+Now let's plot our result. This is what we can call the unfolded site frequency 
+spectrum, or derived site frequency spectrum, because we know the allelic state 
+of each locus, i\.e\., whether they are _derived_ or _ancestral_.
+
+```{r, fig.width = 12, fig.height = 5}
+
+# Let's plot the histogram of allele frequencies
+hist(derived_allele_frequencies, breaks = nsamples, right = T,
+     main = "Unfolded site frequency spectrum",
+     xlab = "Allele frequency")
+
+```
+
+# The folded site frequency spectrum
+
+\small 
+The ***folded SFS***, or _minor allele frequency_ (MAF) distribution, is a 
+distribution closely related to the unfolded SFS.
+
+To compute the unfolded SFS from a set of loci, we have to know the 
+_ancestral_ and _derived_ state for each locus. This can be inferred with 
+additional data, usually by using one ore more out group species, that are 
+expected to possess alleles in their ancestral state.
+
+On the other hand, even when such out group is unavailable, we can still 
+compute the ***folded SFS***. Indeed, to plot this distribution we focus only 
+on the minor allele, i\.e\., the least frequent allele at each locus, and 
+ignore whether alleles are derived or ancestral.
+
+By definition, allele frequencies in the ***folded SFS*** are ranging from 0 to 0.5 
+(since an allele with allele frequency > 0.5 would not be the _minor_ allele).
+
+# Computing the folded SFS
+
+\small
+We will compute the folded SFS from the unfolded SFS using function _ifelse_. 
+This function uses a test to return either from a first value if the test is 
+_TRUE_, or from a second value if the result is _FALSE_.
+
+In our case we want to retain allele frequencies (AF) of locus _i_ when it is 
+superior to 0.5 and compute the AF of the alternate allele otherwise:
+
+\[   
+MAF_{i} = 
+     \begin{cases}
+       1 - \text{AF}_\text{i} &\quad\text{if AF}_\text{i}>0.5\\
+       \text{AF}_\text{i} &\quad\text{if AF}_\text{i}\le0.5\\
+     \end{cases}
+\]
+
+```{r}
+
+minor_allele_frequencies <- 
+    ifelse(derived_allele_frequencies > .5,     # the test
+           1 - derived_allele_frequencies,      # value if test returns TRUE
+           derived_allele_frequencies)          # value if test returns FALSE
+
+```
+
+# Computing the expected MAF distribution
+
+Given a constant size population, we can build an expected _folded site 
+frequency spectrum_ [@nordborg_2005]. The expected frequency of SNP loci with minor allele 
+frequency _i_, $MAF_{exp,i}$ is:
+
+<!-- $F_{exp,i} = \frac{[\frac{1}{i}+\frac{1}{n-i}]}{\sum_{j=1}^{n-1}\frac{1}{j}}$ -->
+$MAF_{exp,i} = [\frac{1}{i}+\frac{1}{n-i}] / \sum_{j=1}^{n-1}\frac{1}{j}$
+
+```{r}
+
+# We compute the expected MAF, and return the results in the matrix 
+# "expected_maf" 
+expected_maf      <- matrix(ncol = 3, nrow = nsamples / 2)
+expected_maf[, 1] <- seq(1, nsamples / 2)/nsamples
+
+# We prepare the equation by computing the denominator
+denominator <- sum(1 / seq(1, (nsamples - 1)))
+
+expected_maf[, 2] <- 
+    sapply(1:(nsamples / 2),
+           function(i) ((1 / i) + (1 / (nsamples - i))) / (denominator))
+
+n_loci            <- length(minor_allele_frequencies)
+expected_maf[, 3] <- expected_maf[, 2] * n_loci
+
+```
+
+# Plotting the MAF distribution and the expected
+
+```{r, fig.height = 6, fig.width = 14}
+
+hist(minor_allele_frequencies, freq = T, breaks = seq(0, 0.5, 1/(nsamples)),
+     include.lowest = T, right = T,
+     main = "Folded site frequency spectrum", xlab = "Minor allele frequency")
+
+points(x = expected_maf[, 1], y = expected_maf[, 3], type = "l", col = "red")
+
+```
+
+```{r, eval = F, echo = F}
+
+test_df <- cut(minor_allele_frequencies, breaks = seq(0, 0.5, 1/(nsamples)))
+
+tt_df_2 <- data.frame(val = test_df) %>%
+    group_by(val) %>%
+    tally() %>%
+    mutate(val_3 = as.character(val),
+           val_2 = as.numeric(gsub(".*,([0-9.]+)\\]$", "\\1", val_3)))
+
+colnames(expected_maf) <- c("num", "freq", "count")
+expected_maf_2 <- as.data.frame(expected_maf)
+
+ggplot(tt_df_2) +
+    geom_bar(aes(x = val_2, y = n), stat = "identity") +
+    geom_line(data = expected_maf_2, aes(x = num, y = count))
+
+hist(test_df, breaks = (nsamples/2))
+
+test_df <- cut(minor_allele_frequencies, breaks = seq(0, 0.5, 1/(nsamples)))
+
+tt_df_2 <- data.frame(val = test_df) %>%
+    group_by(val) %>%
+    tally() %>%
+    mutate(val_3 = as.character(val),
+           val_2 = as.numeric(gsub(".*,([0-9.]+)\\]$", "\\1", val_3)))
+
+colnames(expected_maf) <- c("num", "freq", "count")
+expected_maf_2 <- as.data.frame(expected_maf)
+
+ggplot(tt_df_2) +
+    geom_bar(aes(x = val_2, y = n), stat = "identity") +
+    geom_line(data = expected_maf_2, aes(x = num, y = count))
+
+hist(test_df, breaks = (nsamples/2))
+
+```
+
+# Your turn
+
+Now it's your turn: use the file *exercise_1.vcf* and explore its content.
+
+Then answer the next questions:
+
+***Q1*** How many loci and how many samples are contained in file exercise_1.vcf?
+
+***Q2*** Compute and plot the unfolded and folded site frequency spectra using the data in exercise_1.vcf. What observations can you make, and what would be your guess regarding the demography of the population sampled in that file?
+
+```{r, eval = F, echo = F}
+
+in_file_ex1 <- "./exercise_1.vcf"
+in_ex1 <- read.vcfR(in_file_ex1)
+
+dat_ex1 <- extract.gt(in_ex1)
+
+mode(dat_ex1) <- "numeric"
+
+nsamples_ex1 <- ncol(dat_ex1)
+
+af_ex1 <- rowSums(dat_ex1)/nsamples_ex1
+hist(af_ex1, breaks = nsamples_ex1)
+
+maf_theo_ex1      <- matrix(ncol = 3, nrow = nsamples_ex1 / 2)
+maf_theo_ex1[, 1] <- seq(1, nsamples_ex1 / 2)/nsamples_ex1
+
+# We prepare the equation by computing the denominator
+denominator_ex1 <- sum(1 / seq(1, (nsamples_ex1 - 1)))
+
+maf_theo_ex1[, 2] <- 
+    sapply(1:(nsamples_ex1 / 2),
+           function(i) ((1 / i) + (1 / (nsamples_ex1 - i))) / (denominator_ex1))
+
+n_loci_ex1            <- length(af_ex1)
+maf_theo_ex1[, 3] <- maf_theo_ex1[, 2] * n_loci_ex1
+
+af_ex1_folded <- ifelse(af_ex1 > .5, 1 - af_ex1, af_ex1)
+
+hist(af_ex1_folded, freq = T, breaks = seq(0, 0.5, 1/(nsamples_ex1)),
+     include.lowest = T, right = T,
+     main = "Folded site frequency spectrum", xlab = "Minor allele frequency", ylim = c(0, 50))
+
+points(x = maf_theo_ex1[, 1], y = maf_theo_ex1[, 3], type = "l", col = "red")
+
+
+```
+
+# Reading a fasta file
+
+We will now focus on reading data from fasta files, using package *ape* and 
+analyzing its content using packages *pegas* and *adegenet*.
+
+First, install the libraries if you have not installed them before.
+
+```{r, eval = F}
+
+# Only once
+install.packages("ape")
+install.packages("pegas")
+install.packages("adegenet")
+
+```
+
+Then load the libraries and read the file example file  
+_./Model-2_30_sequences_1000bp.fasta_ using function _fasta2DNAbin_.
+
+```{r, eval = F, message = F}
+
+library("ape")
+library("pegas")
+library("adegenet")
+
+fasta_file <- "./Model-2_30_sequences_1000bp.fasta"
+dna_dat    <- fasta2DNAbin(fasta_file)
+
+```
+
+```{r, echo = F, eval = T}
+
+library("ape")
+library("pegas")
+library("adegenet")
+
+fasta_file <- "./Model-2_30_sequences_1000bp.fasta"
+
+dna_dat <- fasta2DNAbin(fasta_file, quiet = T)
+
+```
+
+We can now visualize the content of the fasta file using the function *image*:
+
+```{r, fig.width = 14, fig.height = 6}
+
+image(dna_dat)
+
+```
+
+# Segregating sites 
+
+We can also look at the segregating sites, i\.e\., the variable positions of 
+the sequences.
+
+```{r}
+
+# We use seg.sites to capture the positions of segregating sites and put those 
+# positions in variable segregating_sites
+segregating_sites <- seg.sites(dna_dat)
+
+# Here are the first values of segregating_sites: these are the positions in 
+# the sequences with differences between samples.
+head(segregating_sites)
+
+# To get the number of segregating sites, we can look at the length of the 
+# variable
+length(segregating_sites)
+
+```
+
+# Segregating sites: visualizing
+
+Let's take an overall look at those positions by taking the subset of dna_dat 
+at those positions.
+
+```{r, fig.width = 14, fig.height = 6}
+image(dna_dat[, segregating_sites])
+
+```
+
+# Computing the nucleotide diversity $\pi$ 
+
+Let's now take a look at the nucleotide diversity $\pi$. We can compute the 
+pairwise difference between two sequences using function *dist.dna*.
+
+\small
+Note that dist.dna can compute the distance between pairs of sequences in 
+different ways, ie using different models. The default model is "K80", 
+developed by Kimura in 1980. You can read about these different models by 
+looking at the manual of dist.dna.
+
+\normalsize
+
+***Q3*** Look at the documentation, and explain with your world what you think 
+is the main difference between models K80 and JC69 used to model the distance 
+between dna fragments.
+
+```{r, eval = F}
+
+# Learn about the different models by reading the manual of dist.dna
+help("dist.dna", package = "ape")
+
+```
+
+# Nucleotide diversity: example
+
+\small
+
+Let's use the raw differences for now, i\.e\., using the model = "raw".
+
+As a first example, we will take the first two sequences and compute the 
+pairwise distance.
+
+```{r, fig.width = 14, fig.height = 3}
+
+dist.dna(dna_dat[1:2, ], model = "raw")
+
+image(dna_dat[1:2, seg.sites(dna_dat)])
+
+```
+
+\small
+The two sequences have only one difference: so the pairwise distance is 1 
+over 1000 base pairs, ie 1/1000.
+
+# Nucleotide diversity: the entire data
+
+Let's now do the same for the entire set of sequences.
+
+We start by computing the genetic distance between each pair of sequences
+
+```{r}
+
+dna_distances <- dist.dna(dna_dat, model = "raw")
+
+# A convenient way to take a look at a 'dist' object is to convert it into a 
+# matrix.
+as.matrix(dna_distances)[1:5, 1:5]
+
+```
+
+# Nucleotide diversity: the entire data
+
+\small
+The nucleotide diversity of this set of sequence is the mean of pairwise differences.
+
+```{r}
+
+mean(dna_distances)
+```
+
+\small
+Another way to more quickly compute the same statistic: using function "nuc.div"
+
+```{r}
+
+nuc.div(dna_dat)
+
+```
+
+\small
+So the nucleotide diversity $\pi$ can be understood as the mean difference 
+between all pair of sequences in your data.
+
+# Computing Tajima's D
+
+Tajima's D and $\theta$ can be both computed using function from package 
+*pegas*, *tajima.test* and *theta.s*.
+
+```{r}
+
+tajima.test(dna_dat)
+
+theta.s(dna_dat)
+
+```
+
+# Your turn
+
+Now it's your turn. Analyze both files Exercise_2.fasta and Exercise_3.fasta, 
+and answer the following question.
+
+***Q4*** First, describe the content of each file *Exercise_2.fasta* and *Exercise_3.fasta*.
+
+- how many samples are there in each data?
+- how long are the sequences in each file?
+
+***Q5*** Then, analyze the data in each file to compute the following 
+statistics for each set of sequences, and report the values you obtain:
+
+- the number of segregating sites
+- Tajima's D
+- The nucleotide diversity $\pi$
+
+```{r, eval = F, echo = F}
+
+in_file_ex2 <- "Exercise_2.fasta"
+
+in_ex2 <- fasta2DNAbin(in_file_ex2, quiet = T)
+
+seg.sites(in_ex2)
+image(in_ex2)
+
+in_ex2_seg <- in_ex2[, seg.sites(in_ex2)]
+image(in_ex2_seg)
+
+tajima.test(in_ex2_seg)
+theta.s(in_ex2_seg)
+
+nuc.div(in_ex2)
+
+# ex3
+in_file_ex3 <- "Exercise_3.fasta"
+
+in_ex3 <- fasta2DNAbin(in_file_ex3, quiet = T)
+
+seg.sites(in_ex3)
+image(in_ex3)
+
+in_ex3_seg <- in_ex3[, seg.sites(in_ex3)]
+image(in_ex3_seg)
+
+tajima.test(in_ex3_seg)
+theta.s(in_ex3_seg)
+
+nuc.div(in_ex3)
+
+```
+
+```{r, eval = F, echo = F}
+
+as.matrix(dna_dat[1:3, seg.sites(dna_dat)])
+
+nuc.div(dna_dat)
+
+nuc.div(dna_dat, pairwise.deletion = F)
+mean(dist.dna(dna_dat, model = "JC69"))
+mean(dist.dna(dna_dat, model = "K80"))
+mean(dist.dna(dna_dat, model = "T92"))
+mean(dist.dna(dna_dat, model = "raw"))
+
+1 - 1/length(seg.sites(dna_dat))
+1 - 1/length(seg.sites(dna_dat))
+
+```
+
+# Linkage disequilibrium  {.allowframebreaks}
+
+We will now look at linkage disequilibrium, and we will use a sample of 100 
+sequences of 1000 bp.
+
+```{r, echo = T, message = F, fig.height = 3.5, fig.width = 10}
+
+input_file <- "./Model-4_1000_sequences_LowRecombination.fasta"
+dna_dat_model_4 <- fasta2DNAbin(input_file, quiet = T)
+
+image(dna_dat_model_4[, seg.sites(dna_dat_model_4)], show.labels = F)
+
+```
+
+# Four gamete test
+
+To run the four gamete test, we can use a custom function *four_gametes_test*.
+
+```{r}
+
+# the content of failed_fgt gives each position pairs that have failed the FGT
+failed_fgt <- four_gametes_test(dna_dat_model_4)
+
+head(failed_fgt)
+
+```
+
+
+# Plotting the result of the FGT
+
+\small
+Take a look at the first failed pair of sites, and answer the following question.
+
+***Q6*** Identify the genotypes in this pair of loci. Can you confirm that this 
+pair of loci has failed the FGT? Explain why.
+
+```{r, fig.width = 4, fig.height = 2.6}
+
+image(dna_dat_model_4[, c(failed_fgt[1, ])],
+      show.labels = F, legend = F, cex.axis = 0.5)
+
+```
+
+# Understanding the result of the FGT
+
+Take a closer look at all airs of loci that failed the FGT, and answer the following question:
+
+***Q7*** What would be the minimum number of recombination events to explain 
+the results of the FGT? How do you think this number compares to the number of 
+recombination events that might have occurred in the real history of the 
+sample?
+
+```{r}
+
+# To help you assess the minimum number of recombination events to explain the 
+# result of the four gamete tests, use the function "minimum_recombination"
+
+minimum_recombination(failed_fgt)
+
+```
+
+# The FGT, it's your turn!
+
+***Q8*** Analyze the files *Exercise_2.fasta* and *Exercise_3.fasta*, and give 
+for each the number of position pairs that fails the FGT, and what you think 
+would be the minimum number of recombination events to explain your 
+observations.
+
+```{r, echo = F, eval = F}
+
+in_file_ex2 <- "Exercise_2.fasta"
+in_file_ex3 <- "Exercise_3.fasta"
+
+in_ex2 <- fasta2DNAbin(in_file_ex2, quiet = T)
+in_ex3 <- fasta2DNAbin(in_file_ex3, quiet = T)
+
+failed_fgt_ex2 <- four_gametes_test(in_ex2)
+failed_fgt_ex3 <- four_gametes_test(in_ex3)
+
+minimum_rm_ex2 <- minimum_recombination(failed_fgt_ex2)
+minimum_rm_ex3 <- minimum_recombination(failed_fgt_ex3)
+
+```
+
+
+```{r, eval = F, echo = F}
+
+# all_combin[, failed_fgt]
+# table(apply(as.character(dna_dat_model_4[, c(1569, 1596)]), 1, paste0, collapse = ""))
+# image(dna_dat_model_4[, c(1569, 1596)])
+
+# high_freq <-
+#     sapply(1:length(seg_sites_biall),
+#            function(x) nuc.div(dna_dat_model_4[, seg_sites_biall[x]])) > .0
+#
+# loci_dna <- genind2loci(DNAbin2genind(dna_dat_model_4[, seg_sites_biall[high_freq]]))
+
+# names(loci_dna) <- seg_sites_biall[high_freq]
+# res_LD_scan <- LDscan(loci_dna)
+# bks = seq(0, 1, .2)
+# LDmap(res_LD_scan, POS = seg_sites_biall[high_freq], breaks = bks)
+
+# plot(x = dist(seg_sites_biall[high_freq]),
+#      y = res_LD_scan)
+
+# test_dp <- CK_LDscanDprime(loci_dna)
+
+# range(test_dp)
+
+# plot(x = res_LD_scan, y = test_dp)
+# plot(res_LD_scan)
+
+# bks <- seq(min(test_dp), max(test_dp), length.out = 10)
+# LDmap(test_dp, POS = seg_sites_biall[high_freq], breaks = bks)
+
+```
+
+# Linkage disequilibrium, $r^2$
+
+We will now look at linkage disequilibrium across a large contig. We will use 
+package adegenet during this analysis.
+
+```{r, echo = T, message = F}
+
+# With only one locus
+fasta_file_model_3 <- "Model-3_500000_chromosome_LD.fasta"
+dna_dat_model_3    <- fasta2DNAbin(fasta_file_model_3, quiet = T)
+
+# We will convert the data in another format using package adegenet and 
+# function DNAbin2genind
+dat_loci           <- DNAbin2genind(dna_dat_model_3)
+
+# You can explore the content of dat_loci using eg function "str"
+
+```
+
+# Computing LD statistics: $r^2$
+
+We will focus only on bi-allelic sites, and remove alleles with low frequency, 
+to perform the analyses faster and as these are not very informative for the analysis.
+
+When dealing with real data, you should keep as much data as possible (however, 
+note that singleton have no relevant information)
+
+```{r}
+
+# We select bi-allelic loci
+dat_loci <-
+    dat_loci[, as.character(dat_loci@loc.fac) %in%
+               names(which(dat_loci@loc.n.all == 2))]
+
+# We select alleles with minor allele frequencies
+dat_loci <-
+    dat_loci[, as.character(dat_loci@loc.fac) %in%
+               names(which(minorAllele(dat_loci) > .05))]
+
+sub_set_levels <-
+    sort(levels(dat_loci$loc.fac)[sample(length(levels(dat_loci$loc.fac)), 100)])
+
+```
+
+# Computing LD statistics: $r^2$
+
+We subset the data and compute $r^2$ using function *LDscan*
+
+```{r, eval = F, echo = T, message = F}
+
+dat_loci_2 <- dat_loci[, dat_loci$loc.fac %in% sub_set_levels]
+
+dat_loci_3       <- genind2loci(dat_loci_2)
+positions_contig <- as.numeric(names(dat_loci_3))
+
+names(dat_loci_3) <- NULL
+res_mat <- LDscan(dat_loci_3)
+
+```
+
+```{r, eval = T, echo = F, message = F}
+
+dat_loci_2 <- dat_loci[, dat_loci$loc.fac %in% sub_set_levels]
+
+dat_loci_3 <- genind2loci(dat_loci_2)
+positions_contig <- as.numeric(names(dat_loci_3))
+
+names(dat_loci_3) <- NULL
+res_mat <- LDscan(dat_loci_3, quiet = T)
+
+```
+
+# Linkage disequilibrium map 
+
+Here is now a linkage map that show $r^2$ for each pair of polymorphic site of the contig.
+
+```{r, fig.height = 3.5, fig.width = 6}
+
+LDmap(res_mat, POS = NULL, breaks = seq(0, 1, .2),
+      asp = 1.0, cex = .5, scale.legend = 5)
+
+```
+
+# Linkage disequilibrium map
+
+***Q9*** Can you localize portions of the contig with SNPs in high LD? Where 
+are located the $r^2$ values for each pairs of SNPs far away from each other?
+What can you say about the $r^2$ values on these pairs of SNPs far from each 
+others?
+
+# Linkage disequilibrium: r² decay
+
+\small
+Let's model the decay of $r^2$. For that purpose, we will use the following equation to infer 
+the parameter $\rho$:
+
+\tiny
+
+$E(r^2) = [\frac{10 + \rho d}{(2 + \rho d)(11 + \rho d)}] [1 + \frac{(3 + \rho d)  (12 + 12\rho d + {\rho}^2 d^2)}{n(2 + \rho d)(11 + \rho d)}]$
+
+with $\rho = 4Ne*c$, $d$ the distance between sites and $c$ the recombination rate.
+
+```{r, eval = T}
+
+# Let's compute the euclidian distance between each pair of positions
+pairwise_physical_distances <- dist(positions_contig)
+
+# Now let's build a model to fit the decay of r-square with physical distance 
+# on a contig
+x <- pairwise_physical_distances
+y <- res_mat
+
+# We will use a subset of the data to make things go faster
+n <- 500
+index_s  <- sort(sample(4000, n))
+LD_data  <- c(y)[index_s]
+distance <- c(x)[index_s]
+
+```
+
+\tiny
+
+@hill_1968; @hill_1988; @pyhajarvi_2007; @marroni_2011
+
+# Linkage disequilibrium: r² decay
+
+```{r}
+
+# We define a starting value for the parameter rho we want to estimate
+HW_st <- c(rho = 0.1)
+
+# We can now run the non-linear least square model
+HW_nonlinear <-
+    nls(LD_data ~ ((10 + rho * distance)/
+                   ((2 + rho * distance) * (11 + rho * distance))) *
+                  (1 + ((3 + rho * distance) * (12 + 12 * rho * distance + (rho * distance)^2)) /
+                        (n * (2 + rho * distance) * (11 + rho * distance))),
+        start   = HW_st,
+        control = nls.control(maxiter = 100))
+
+# We now have an estimate of rho
+est_rho <- summary(HW_nonlinear)$parameters[1]
+
+# We use the estimate of rho to compute new estimates of r-square, based on our 
+# model.
+predicted_rsq <-
+    ((10 + est_rho * distance) /
+     ((2 + est_rho * distance) * (11 + est_rho * distance))) *
+    (1 +
+     ((3 + est_rho * distance) * (12 + 12 * est_rho * distance + (est_rho * distance)^2)) /
+     (n * (2 + est_rho * distance) * (11 + est_rho * distance)))
+
+```
+
+# r² decay
+
+We can now plot both our observed data and the result of our model.
+
+```{r, fig.width = 8, fig.height = 3.5}
+
+# We plot the observed points
+plot(x = x, y = y, cex = .2, cex.lab = .8, cex.axis = .8,
+     xlab = "Physical distance, bp",
+     ylab = "Linkage disequilibrium r²")
+
+# We plot the estimated points from our model
+points(x = sort(distance), y = predicted_rsq[order(distance)],
+       col = "red", type = "l")
+ 
+```
+
+```{r, eval = F, echo = F}
+
+# x_subset        <- seq(from = 1, to = 1e5, length.out = 1000)
+# y_model         <- predict(object = model_rsq_decay,
+#                            newdata = list(x = x_subset))
+
+# plot(x, y,
+#      xlab = "Physical distance, bp",
+#      ylab = "Linkage disequilibrium r²")
+
+# Adding the decay curve based on our model
+# matlines(x = x_subset, y = y_model,
+#          lwd = 2, col = "red")
+
+
+# plot(x, y,
+#      xlab = "Genetic distance in bp", ylab = "r²")
+
+# matlines(x = x_subset, y = y_model,
+#          lwd = 2, col = "red")
+
+# ggplot(rsq_decay_df, aes(x = pairwise_physical_distances, y = rsq)) +
+#     geom_point() +
+#     # geom_smooth(method = "glm")
+#     geom_smooth(formula = y ~ log(x), method = "glm", se = F) +
+#     ylim(c(0, 1)) +
+#     xlab("Genetic distance in bp") +
+#     ylab("r²") +
+#     theme_minimal()
+
+```
+
+```{r, eval = F, echo = F}
+
+fl <- "~/Downloads/global.pop.GATK.SNP.hard.filters.V3.phased_all.pop.maf.05.recode.vcf.gz"
+
+info.fly <- VCFloci(fl)
+
+bks <- seq(0, 1, 0.2)
+
+## LD map from the first 100 loci:
+x <- read.vcf(fl, to = 100) # read only 100 loci
+res <- LDscan(x)
+LDmap(res, info.fly$POS[1:100], bks, scale.legend = 3)
+
+## check the chromosomes:
+table(info.fly$CHROM)
+
+## LD map from 100 loci randomly distributed on the chromosome:
+# s <- ceiling(seq(1, 224253, length.out = 100))
+s <- ceiling(seq(11000, 29253, length.out = 100))
+xs <- read.vcf(fl, which.loci = s)
+res2 <- LDscan(xs)
+bks <-  seq(0, 1, .1)
+LDmap(res2, info.fly$POS[s], bks, scale.legend = 3)
+
+## something simpler with 10 loci:
+x10 <- x[, 1:10]
+## the VCF file has no locus IDs, so we give some here:
+names(x10) <- paste0("Loc", 1:10)
+res10 <- LDscan(x10, quiet = TRUE)
+LDmap(res10, angle = 45, border = NULL)
+## End(Not run)
+
+pegas::LD(x10, locus = c(1,10), details = F)
+
+###
+
+
+test_dist <- dist(s)
+
+test_df <- data.frame(cons_dist_t = c(test_dist),
+                      r2 = c(res2))
+
+ggplot(test_df, aes(x = cons_dist_t, y = r2)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = y ~ log(x))
+
+```
+
+```{r, eval = F, echo = F}
+
+in_sylv <- "./data_savolainen_psylvestris.tsv"
+data_psylvestris <- read.table(in_sylv, header = T, sep = "\t", stringsAsFactors = F)
+positions <- as.numeric(gsub("pos_", "", colnames(data_psylvestris)[-1]))
+all_sequences <- apply(data_psylvestris[, -1], 1, paste0, collapse = "")
+
+dna_bin_sylvestris <- as.DNAbin(as.matrix(data_psylvestris[, -1]))
+rownames(dna_bin_sylvestris) <- data_psylvestris[, 1]
+
+image(dna_bin_sylvestris)
+
+loci_sylvestris <- genind2loci(DNAbin2genind(dna_bin_sylvestris))
+
+res_ldscan_sylv <- LDscan(loci_sylvestris)
+LDmap(res_ldscan_sylv, POS = positions, cex = 1)
+
+LD(loci_sylvestris, c(1, 2))
+LD(loci_sylvestris, c(1, 3))
+
+CK_LDscanDprime
+CK_LDscanDprime <- function (x, quiet = FALSE) {
+    # Je détourne LDscan pour retourner Dprime
+
+    nloci <- ncol(x)
+    hap <- pegas:::haplotype.loci(x, seq_len(nloci), TRUE, FALSE)
+    .CKLD_prime <- function(x, loc1, loc2) {
+        nij <- table(hap[loc1, ], hap[loc2, ])
+        N <- sum(nij)
+        pij <- nij/N
+        p_i <- rowSums(pij)
+        qj <- colSums(pij)
+        eij <- p_i %o% qj * N
+        p_i <- rep(p_i, ncol(pij))
+        qj <- rep(qj, each = nrow(pij))
+        D <- pij - p_i * qj
+        # Added
+        Dmax <- ifelse(D < 0,
+                       pmax(-p_i * qj, -(1-p_i) * (1-qj)),
+                       pmin(p_i * (1-qj), (1-p_i) * qj))
+        Dp <- D/Dmax
+        # cat(sprintf("DP: %s, D: %s, Dmax: %s, pi: %s, qj: %s, pij: %s, length: %s\n",
+        #             Dp, D, Dmax, p_i, qj, pij, length(Dp)))
+        Dp[1]
+        # rij <- D/sqrt(pi * (1 - pi) * qj * (1 - qj))
+        # abs(rij[1])
+    }
+
+    M <- nloci * (nloci - 1)/2
+    ldx <- numeric(M)
+    k <- 0L
+    for (i in 1:(nloci - 1)) {
+        for (j in (i + 1):nloci) {
+            k <- k + 1L
+            ldx[k] <- .CKLD_prime(x, i, j)
+            if (!quiet)
+                cat("\r", round(100 * k/M), "%")
+        }
+    }
+    cat("\n")
+    class(ldx) <- "dist"
+    attr(ldx, "Size") <- nloci
+    attr(ldx, "Labels") <- names(x)
+    attr(ldx, "Diag") <- attr(ldx, "Upper") <- FALSE
+    attr(ldx, "call") <- match.call()
+    ldx
+}
+
+
+expected_foldedSFS <- function(sample_size) {
+
+    serie <- seq(1,(sample_size - 1))
+    sapply(1:(sample_size/2),
+           function(i) ((1 / i) + (1 / (sample_size - i))) / (sum(1 / serie)))
+}
+
+```
+
+# Your turn (optional)
+
+_If you have the time_...
+
+***Q10*** Compute $r^2$ values using exercise files *Exercise_2.fasta* and *Exercise_3.fasta* (optional).
+
+***Q11*** Then plot the $r^2$ values you have computed across the sequences using *LDmap* (optional).
+
+***Q12*** Finally plot $r^2$ decay for each sequence (optional).
+
+# Session Info {.allowframebreaks}
+
+\tiny
+
+```{r}
+
+sessionInfo()
+
+```
+
+# References {.allowframebreaks}
+
+\tiny
+

@@ -1,0 +1,567 @@
+---
+title: |
+    | DNA analysis in population genetics
+    | Practical 4, Selection
+author: |
+    | Chedly Kastally <chedly.kastally@oulu.fi>
+    | Tanja Pyhäjärvi <tanja.pyhajarvi@oulu.fi>
+bibliography: 4_selection.bib
+date: '`12 March, 2020`'
+output:
+  pdf_document:
+        beamer_presentation:
+            slide_level: 1
+            theme: "Montpellier"
+            color: "beaver"
+link-citations: yes
+header-includes:
+    - \usepackage{lscape}
+    - \newcommand{\blandscape}{\begin{landscape}}
+    - \newcommand{\elandscape}{\end{landscape}}
+    - \usepackage{float}
+    - \usepackage{xcolor}
+    - \definecolor{asparagus}{rgb}{0.53, 0.66, 0.42}
+    - \definecolor{aurometalsaurus}{rgb}{0.43, 0.5, 0.5}
+    - \definecolor{beige}{rgb}{0.96, 0.96, 0.86}
+    - \setbeamercolor{titlelike}{parent=palette primary,fg=asparagus}
+    - \setbeamercolor*{palette primary}{bg=beige, fg=asparagus}
+    - \setbeamercolor*{palette secondary}{bg=beige!90!aurometalsaurus, fg=asparagus}
+    - \setbeamercolor*{palette tertiary}{bg=aurometalsaurus, fg=asparagus}
+    - \setbeamercolor*{palette quaternary}{bg=beige, fg=asparagus}
+    - \setbeamercolor{frametitle}{bg=aurometalsaurus!10!beige}
+    - \setbeamercolor{frametitle right}{bg=aurometalsaurus!60!beige}
+    - \setbeamertemplate{itemize item}{\color{asparagus}$\blacktriangleright$}
+    - \setbeamertemplate{itemize subitem}{\color{asparagus}---}
+    - \usepackage{hyperref}
+    - \hypersetup{colorlinks,urlcolor=asparagus}
+
+---
+
+```{r setup, echo = F}
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+knitr::opts_chunk$set(size="tiny", cache = T)
+```
+
+# Goals
+
+- Familiarize yourself with the effect of selection and genetic drift on allele 
+  frequency.
+
+- Learn how selection affect patterns of genetics diversity.
+
+- Compute and plot summary statistics that can be affected by selection.
+
+# Rlearnpopgen
+
+We will use for this session the package *learnPopGen* 
+[@revell_learnpopgen_2019], it's a package built specifically with the intent 
+to illustrate processes related to evolution and population genetics.
+
+```{r rlearnpopgen_install, eval = F}
+
+install.packages("learnPopGen") # only once!
+library("learnPopGen")
+
+help(package = "learnPopGen")
+
+```
+
+```{r rlearnpopgen_library, eval = T, include = F}
+
+library("learnPopGen")
+
+```
+
+# Evolutionary stable strategies
+
+```{r hawk_dove_simple}
+
+Payoff <- matrix(c(.5, 1.5,
+                   .6, 1),
+                 2, 2,
+                 dimnames = list(Focal_Strategy = c("Hawk", "Dove"),
+                                 Opponent = c("Hawk", "Dove")),
+                 byrow = T)
+
+plot(hawk.dove(time = 60, M = Payoff))
+
+```
+
+# Evolutionary stable strategies: changing the payoff
+
+\small
+Let's try with different initial settings.
+
+```{r hawk_dove_regular, fig.height = 4}
+
+Payoff <- matrix(c(-25, 50, 0, 15),
+                 2, 2,
+                 dimnames = list(Focal_Strategy = c("Hawk", "Dove"),
+                                 Opponent = c("Hawk", "Dove")),
+                 byrow = T)
+
+
+
+plot(hawk.dove(time = 60, M = Payoff))
+
+```
+
+# Evolutionary stable strategies: changing the payoff {.allowframebreak}
+
+\small
+
+Here again.
+
+***Q1.*** What do you observe when you change the settings using the hawk.dove function? How do you interpret those patterns?
+
+```{r hawk_dove_irregular, fig.height = 4}
+
+Payoff <-
+    matrix(c(-10, 60, 0, 15),
+           2, 2, dimnames = list(Focal_Strategy = c("Hawk", "Dove"),
+                                 Opponent = c("Hawk", "Dove")),
+           byrow = T)
+
+plot(hawk.dove(time = 60, M = Payoff))
+
+```
+
+```{r, include = F}
+freqdep(p0=0.01, s=0.8, time=100, show="p", pause=0)
+```
+
+# Genetic drift
+
+\small
+Genetic drift is an essential process in evolution. The function 
+*genetic.drift* produces a graph that is a nice representation of what is 
+genetic drift.
+
+***Q2.*** Explain with your own words what is genetic drift, and explain what is represented in the plot generated when running the command `genetic.drift()`.
+
+```{r drift, fig.height = 3.5, fig.width = 12}
+
+par(mfrow = c(1,1))
+
+genetic.drift()
+
+```
+
+# Genetic drift: the effect of $Ne$
+
+\small
+The effective population size, $Ne$, has an important effect of genetic drift. Experiment with the function *genetic.drift* to assess the effect of the $Ne$ on genetic drift and answer the following question. To determine how to change the effective size parameter on the function *genetic.drift*, check the manual page of the function using the command `help("genetic.drift")`
+
+\normalsize
+
+***Q3.*** Is genetic drift stronger or weaker in a population with higher effective population size compared to a population with low effective population size? Justify your answer with multiple plots representing the effect of genetic drift on populations with different effective sizes.
+
+# Selection without genetic drift
+
+Selection is another fundamental process of evolution.
+
+In the following part, we will look at the joint effect of selection and 
+genetic drift. To make things simpler, we will first look at selection without 
+genetic drift.
+
+# Selection without genetic drift: directional selection
+
+\small
+Let's start with directional selection.
+
+***Q4.*** Describe the content of each one of the 4 plots generated when running the following commands.
+
+```{r directional_selection, fig.height = 4.5, fig.width = 12}
+
+directional_selection <- c(.2,.1,.1)
+par(mfrow = c(2,2))
+selection(w = directional_selection, time = 200, show = "p")
+selection(w = directional_selection, time = 200, show = "deltap")
+selection(w = directional_selection, time = 200, show = "surface")
+selection(w = directional_selection, time = 200, show = "cobweb")
+par(mfrow = c(1,1))
+```
+
+# Balancing selection: your turn
+
+\small
+We can also experiment with other types of selection, for instance balancing selection.
+
+***Q5.*** Describe in a few words what is balancing selection and produce plots to illustrate the effect of balancing selection on allele frequency in the same manner we just did for directional selection.
+
+```{r balancing_selection, echo = F, eval = F}
+
+balancing_selection <- c(.1,.2,.1)
+par(mfrow = c(2,2))
+selection(w = balancing_selection, time = 200, show = "p")
+selection(w = balancing_selection, time = 200, show = "deltap")
+selection(w = balancing_selection, time = 200, show = "surface")
+selection(w = balancing_selection, time = 200, show = "cobweb")
+par(mfrow = c(1,1))
+
+```
+
+# Drift vs Selection
+
+\small
+We will now introduce drift. But before that, run the following commands and answer the question.
+
+***Q6.*** What is the genotype with highest fitness? What is the genotypes with lowest fitness? Based on those observations, what allele would you expect to be fixed? Why is it not the case?
+
+Experiment with the same fitnesses, but try changing parameters Ne and p0.
+
+***Q7.*** What changes when you increase or decrease Ne? What is p0 and what changes when you increase its value?
+
+```{r selection_non_optimal, fig.height = 2.5, fig.width = 10}
+
+selection(Ne = 100, p0 = 0.01, w = c(1,.1,.2))
+
+```
+
+# Drift vs Selection
+
+\small
+Let's now use drift and selection together.
+
+***Q8.*** Experiment with the Effective size parameter and try values from 10 to 500. Does it make a difference, and if so, what difference does it make? Repeat your runs multiple times to make sure your observations are robust against stochastic variations.
+
+```{r drift_selection, fig.height = 3.5, fig.width = 10}
+drift.selection(Ne=30,
+                p0=0.05, 
+                w = c(.2,.09,.09),
+                ngen=50,
+                nrep=10, colors=NULL)
+
+```
+
+```{r coalescent, eval = F, include = F}
+
+# inutile je pense
+coalescent.plot(n = 10, ngen = 20)
+coalescent.plot(n = 10, ngen = 50)
+
+```
+
+# Selection and the Site Frequency Spectrum: setup
+
+\small
+In this part we will go back to one of the tools we have been previously using: 
+the package *coala*.
+
+We will use *coala* to run simulation with and without selection, using a 
+simple constant-size population. This will allow us to assess the effect of 
+selection on (1) the unfolded site frequency spectrum, and (2) Tajima's D.
+
+To run this part, you will have to download an appropriate simulator: *msms* 
+available in the following link:
+
+https://www.mabs.at/ewing/msms/msms3.2rc-b163.jar
+
+```{r coala_msms_configuration_demo, eval = F, echo = T}
+library("coala")
+
+# After downloading msms, you have to make sure coala can use it, you have to 
+# put the correct path to msms below. If you have put msms in your current 
+# working directory, this should work.
+
+activate_msms(jar = "./msms.jar")
+
+```
+
+```{r coala_msms_configuration, eval = T, echo = F}
+library("coala")
+activate_msms(jar = "~/.local/bin/msms.jar")
+
+```
+
+# Selection and the site frequency spectrum: the models
+
+Let's build the models we are interested in.
+
+```{r coala_simulations}
+
+# First, the neutral model
+model_neutral <- coal_model(50, 1000, 100) +
+       feat_mutation(10) +
+       sumstat_sfs(population = 1) +
+       sumstat_tajimas_d(population = 1)
+
+# Second, a model implementing directional selection
+model_selection <- coal_model(50, 1000, 100) +
+       feat_selection(strength_A = 2000,
+                      population = 1,
+                      force_keep = T,
+                      time = par_named("tau")) +
+       feat_mutation(10) +
+       sumstat_sfs(population = 1) +
+       sumstat_tajimas_d(population = 1)
+
+result_neutral <-
+    simulate(model_neutral,
+             pars = c(tau = 0.03))
+
+result_selection <-
+    simulate(model_selection,
+             pars = c(tau = 0.03))
+
+
+```
+
+# Selection and the site frequency spectrum: results
+
+\small
+Now let's plot the summary statistics generated by the simulations.
+
+```{r plotting_coala, fig.height = 4.5, fig.width = 12}
+
+# Let's plot the results
+par(mfrow = c(2,2))
+barplot(result_neutral$sfs/sum(result_neutral$sfs),
+        main = "SFS, neutral")
+boxplot(result_neutral$tajimas_d, main = "Tajima's D, neutral")
+barplot(result_selection$sfs/sum(result_selection$sfs),
+        main = "SFS, selection")
+boxplot(result_selection$tajimas_d, main = "Tajima's D, selection")
+par(mfrow = c(1,1))
+
+```
+
+# Selection and the site frequency spectrum: questions
+
+Based on your observations, answer the following questions:
+
+***Q9.*** (optional) What is the effect of direction selection on the site frequency spectrum and on Tajima's D?
+
+***Q10.*** (optional) Can you easily discriminate the neutral model, that does not include any selection, and the model with directional selection, based on the site frequency spectrum and on Tajima's D?
+
+
+# Your turn
+
+Now it's your turn: explore the following model using balancing selection. The 
+model is presented below, but you have to write the code to plot the result.
+
+```{r coala_balancing}
+
+model_balancing_selection <-
+    coal_model(50, 1000, 100) +
+       feat_selection(strength_AA = 500,
+                      strength_Aa = 1000,
+                      strength_aa = -500,
+                      population = 1,
+                      time = par_named("tau")) +
+       feat_mutation(10) +
+       sumstat_sfs(population = 1) +
+       sumstat_tajimas_d(population = 1)
+
+result_balancing_selection <-
+    simulate(model_balancing_selection,
+             core = 4,
+             pars = c(tau = 0.03))
+
+```
+
+# Your turn: balancing selection, the questions
+
+Based on your observations on balancing selection, answer the following questions.
+
+***Q11.*** (optional) What is balancing selection, and how is it implemented in the model below?
+
+***Q12.*** (optional) What is the effect of balancing selection on the site frequency spectrum and on Tajima's D? Can you easily see the difference between this model and the neutral expectations?
+
+```{r coala_balancing_yourTrun, eval = F, include = FALSE}
+
+barplot(result_balancing_selection$sfs/sum(result_balancing_selection$sfs),
+        main = "SFS, balancing selection")
+boxplot(result_balancing_selection$tajimas_d,
+        main = "Tajima's D, balancing selection")
+
+```
+
+# Linkage Disequilibrium and selection
+
+You will now compare the values of $\pi$, Tajima's D, and $r^2$ across a DNA 
+sequence, with and without the effect of selection.
+
+Two set of sequences are available to you, one has been generated using 
+directional selection, and the other without. Both were simulated with a 
+constant-size population.
+
+Below you will find the procedure followed to compute the statistics for the 
+file "Model_1-50kb_contig.fasta". Once you have understood the different steps, 
+reproduce this procedure with the file "exercise-50kb_contig.fasta", and answer 
+the following questions.
+
+# Effect of selection on $\pi$ and Tajima's D: setup
+
+First we will take a look at values of $\pi$ and Tajima's D across the 
+sequence. We will compute the statistics in consecutive windows of 500 bp 
+across the entire DNA sequence.
+
+```{r read_fasta_setup_demo, eval = F, echo = T}
+
+# make sure you have the file "4_selection_lib.R" available in your path!
+source("4_selection_lib.R")
+
+# Make sure these libraries have been installed previously, and if not, install 
+# them following the usual procedure.
+library("adegenet")
+library("pegas")
+library("ape")
+
+fasta_file_model_1 <- "Model_1-50kb_contig.fasta"
+
+# Read the fasta file
+dna_dat <- fasta2DNAbin(fasta_file_model_1)
+
+```
+
+```{r read_fasta_setup, eval = T, echo = F}
+
+# make sure you have the file "4_selection_lib.R" available in your path!
+source("4_selection_lib.R")
+
+# Make sure these libraries have been installed previously, and if not, install 
+# them following the usual procedure.
+library("adegenet")
+library("pegas")
+library("ape")
+
+fasta_file_model_1 <- "Model_1-50kb_contig.fasta"
+# fasta_file_model_1 <- "exercise-50kb_contig.fasta"
+
+# Read the fasta file
+dna_dat <- fasta2DNAbin(fasta_file_model_1, quiet = T)
+
+```
+
+# Plot and run the analysis
+
+```{r fasta_pi_td, fig.width = 12, fig.height = 5}
+
+# Vizualize the data
+image(dna_dat[, seg.sites(dna_dat)])
+
+# Define the window size of 500 bp
+win_size <- 500
+
+# Scan function that compute Pi and tajima's D across the sequence
+res_scan <- scanPiTd(dna_dat, window_size = win_size) 
+
+```
+
+# $\pi$ and Tajima's D, plotting
+
+Let's plot the result of the analysis.
+
+```{r scan_pi_td_plot, fig.height = 6, fig.width = 14}
+
+# Plot the results
+par(mfrow = c(2,1))
+plot(win_size*(1:length(res_scan$pi)), res_scan$pi, type = "l",
+     xlab = "Position", ylab = expression(pi))
+plot(win_size*(1:length(res_scan$tajimas_d)), res_scan$tajimas_d, type = "l",
+     xlab = "Position", ylab = "Tajima's D")
+par(mfrow = c(1,1))
+
+```
+
+# $\pi$ and Tajima's D: your turn
+
+Run the same analyses, but using the file *exercise-50kb_contig.fasta* and answer the following questions.
+
+***Q13.*** (optional) How do the values of genetic diversity $\pi$ and Tajima's D statistics compare with this new set of sequences to the one we analysed previously? Which set of sequence do you suspect has been affected by selective pressure, and why?
+
+# $r^2$ Scan computation
+
+Let's now take a look at $r^2$. We will compute $r^2$ between all pairs of polymorphic sites of the sequences using function *LDscan*.
+
+```{r rsquare_scan, echo = F, eval = T}
+
+# Convert the data to the appropriate format
+loci_dat            <- convert_DNA_2_biall_genind(dna_dat)
+
+# To make things go faster, we will subsample randomly 100 polymorphic 
+# positions
+loci_dat_subsampled <- loci_dat[sort(sample(length(loci_dat), 100))]
+
+# R-square scan
+ldScan <- LDscan(loci_dat_subsampled, quiet = T)
+
+```
+
+```{r rsquare_scan_demo, echo = T, eval = F}
+
+# Convert the data to the appropriate format
+loci_dat            <- convert_DNA_2_biall_genind(dna_dat)
+
+# To make things go faster, we will subsample randomly 100 polymorphic 
+# positions
+loci_dat_subsampled <- loci_dat[sort(sample(length(loci_dat), 100))]
+
+# R-square scan
+ldScan <- LDscan(loci_dat_subsampled)
+
+```
+
+# $r^2$ map
+
+Now let's plot the result.
+
+Reproduce the same analysis and plots using the file *exercise-50kb_contig.fasta*.
+
+```{r ldmap, fig.height = 3.6, fig.width = 9}
+# Plot
+LDmap(ldScan, cex = .2, cex.lab = .4)
+
+```
+
+```{r omega, eval = F, include = FALSE}
+
+model <- coal_model(20, 1, 50000) +
+       feat_recombination(50) +
+       feat_mutation(100) +
+       sumstat_omega()
+
+stats <- simulate(model)
+model_2 <- coal_model(20, 1, 50000) +
+       feat_recombination(50) +
+       feat_mutation(100) +
+       feat_selection(strength_A = 1000, time = 0.03) +
+       sumstat_omega()
+
+stats_2 <- simulate(model_2)
+
+par(mfrow = c(1, 2))
+plot(stats$omega$omega, type = "l", ylim = c(0, 60))
+plot(stats_2$omega$omega, type = "l", ylim = c(0, 60))
+
+library("ape")
+
+dna_seq_bin <- as.matrix(as.DNAbin(do.call(rbind, lapply(dna_sequences, strsplit, split=""))))
+
+allele_frequencies <- colSums(genind_obj_biall$tab[, seq(1, ncol(genind_obj_biall$tab), 2)])/nrow(genind_obj_biall$tab)
+
+barplot(table(allele_frequencies))
+
+hist(allele_frequencies, breaks = seq(1, 19, 1)/20)
+
+```
+
+# Session Info {.allowframebreaks}
+
+\tiny
+
+```{r}
+
+sessionInfo()
+
+```
+
+# References {.allowframebreaks}
+
+\tiny

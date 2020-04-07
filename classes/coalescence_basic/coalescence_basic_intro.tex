@@ -1,0 +1,178 @@
+% vim:ft=tex:
+%
+\documentclass[8pt]{beamer}
+
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage[]{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\usepackage{tikz}
+
+\usetheme{Montpellier}
+\usecolortheme{beaver}
+
+\usepackage{xcolor}
+
+\definecolor{asparagus}{rgb}{0.53, 0.66, 0.42}
+\definecolor{aurometalsaurus}{rgb}{0.43, 0.5, 0.5}
+\definecolor{beige}{rgb}{0.96, 0.96, 0.86}
+\setbeamercolor{titlelike}{parent=palette primary,fg=asparagus}
+\setbeamercolor*{palette primary}{bg=beige, fg=asparagus}
+\setbeamercolor*{palette secondary}{bg=beige!90!aurometalsaurus, fg=asparagus}
+\setbeamercolor*{palette tertiary}{bg=aurometalsaurus, fg=asparagus}
+\setbeamercolor*{palette quaternary}{bg=beige, fg=asparagus}
+\setbeamercolor{frametitle}{bg=aurometalsaurus!10!beige}
+\setbeamercolor{frametitle right}{bg=aurometalsaurus!60!beige}
+\setbeamertemplate{itemize item}{\color{asparagus}$\blacktriangleright$}
+
+\hypersetup{colorlinks,urlcolor=asparagus}
+
+\usepackage{pdfpages}
+
+\usepackage{enumitem}
+
+\setlist[itemize]{itemsep=10pt, label={\color{asparagus}$\blacktriangleright$}}
+
+\setbeamertemplate{navigation symbols}{}
+
+\title{DNA analysis in population genetics\\
+Practical 2, the coalescent}
+
+\date{Februrary, 25, 2020}
+
+\author{
+    \texorpdfstring{
+        \begin{columns}
+              \column{.45\linewidth}
+              \centering
+              Chedly Kastally\\
+              \href{mailto:chedly.kastally@oulu.fi}{chedly.kastally@oulu.fi}
+              \column{.45\linewidth}
+              \centering
+              Tanja Pyh{\"a}j{\"a}rvi\\
+              \href{mailto:tanja.pyhajarvi@oulu.fi}{tanja.pyhajarvi@oulu.fi}
+        \end{columns}
+    % \texorpdfstring{}
+    }
+    {Kastally, Chedly \and Tanja Pyh{\"a}j{\"a}rvi}
+}
+
+
+\begin{document}
+
+\begin{frame}
+
+\maketitle
+
+\end{frame}
+
+{
+\setbeamercolor{background canvas}{bg=}
+\includepdf[width=1.5\textwidth]{demographic_models.pdf}
+}
+
+\begin{frame}
+    \frametitle{Demographic processes}
+
+    \large
+
+    \begin{itemize}
+    
+        \item<1-> In population genetics, we are interested in understanding how
+            various processes, such as demographic processes, impact genetic
+            variation.
+
+        \item<2-> To this end, we use models, such as the \textit{coalescent}
+
+    \end{itemize}
+
+\end{frame}
+
+
+{
+\setbeamercolor{background canvas}{bg=}
+\includepdf[width=1\textwidth]{genealogy.pdf}
+}
+
+\begin{frame}
+    \frametitle{The coalescent}
+
+    \large
+
+    \begin{itemize}
+    
+        \item<1-> The coalescent is a model of how \textit{genetic elements} \textit{sampled from a population} originated from a common ancestor
+
+        \item<2-> In a coalescent model, we go backward in time, from
+            the present to the time of the most recent ancestor (TMRCA).
+
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Concepts}
+
+    \large
+
+    Some additional concepts
+
+    \vspace{1em}
+
+    \begin{itemize}
+    
+        \item<1-> Summary Statistics: $\pi$, $\theta$...
+
+        \item<2-> Tajima's D
+
+        \item<3-> The Site Frequency Spectrum
+
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Today}
+    \large
+
+    \begin{itemize}
+    
+        \item<1-> You will explore different aspects of the coalescent
+            using a package implemented in R:\ \textit{coala}
+
+        \item<2-> You will use this tool to model different and simple
+            coalescent models of population
+
+        \item<3-> You will simulate coalescent processes, and distribution of
+            statistics using these models, and explore how variation in
+            those models affect those statistics and your simulations.
+
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Instructions}
+
+    \begin{itemize}
+    
+    \item<1-> Instructions in Moodle: 2\_Coalescent\_Practical.pdf;
+    explore as much as possible
+    \vspace{1em}
+
+    \item<2-> Questions to be answered in Moodle
+    \vspace{1em}
+
+    \item<3-> An R script is also expected and has to be submitted
+    in Moodle
+
+    \end{itemize}
+
+\end{frame}
+
+
+
+\end{document}
