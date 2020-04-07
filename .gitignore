@@ -1,0 +1,54 @@
+# editor files
+*.swp
+*.swo
+*~
+.~*
+Session.vim
+
+# compressed & data files
+*.gz
+
+*.vcf
+*.bed
+
+*.fa
+*.fq
+*.fasta*
+*.fastq*
+
+# log and pdf output files
+*.log
+*.pdf
+*.csv
+
+# archived files
+archive
+
+# tmp result dirs and files
+tmp_result
+tmp_result*
+bu*
+
+*_cache
+*_files
+
+# tex dump
+*.fls
+*.aux
+*.fdb_latexmk
+*.fls
+*.nav
+*.out
+*.snm
+*.toc
+
+# R data files
+*.RData
+*.Rhistory
+
+# microsoft dump
+*.xlsx{,\#}
+*.doc{,x}{,\#}
+
+# specific cases
+
